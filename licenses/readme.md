@@ -25,7 +25,6 @@
 | [`RGT`](https://github.com/zhengchen1999/RGT)							      		| [Apache 2.0](https://github.com/zhengchen1999/RGT/blob/main/LICENSE)						|
 | [`ATD`](https://github.com/LabShuHangGU/Adaptive-Token-Dictionary)				      		| [Apache 2.0](https://github.com/LabShuHangGU/Adaptive-Token-Dictionary/blob/main/LICENSE.txt)			|
 | [`patchgan`](https://github.com/NVIDIA/pix2pixHD) discriminator (pix2pixHD)			      		| [BSD](https://github.com/NVIDIA/pix2pixHD/blob/master/LICENSE.txt)						|
-| [`Gradient Variance Loss`](https://github.com/lusinlu/gradient-variance-loss)			      		| Unknown 													|
 | [`DISTS`](https://github.com/dingkeyan93/DISTS)						      		| [MIT](https://github.com/dingkeyan93/DISTS/blob/master/LICENSE)						|
 | DISTS weights from [`IQA-PyTorch`](https://github.com/chaofengc/IQA-PyTorch)			      		| [CC-NC-SA 4.0](https://github.com/chaofengc/IQA-PyTorch/blob/main/LICENSE)					|
 | [`WGSR`](https://github.com/mandalinadagi/WGSR)						      		| Unknown													|
@@ -36,7 +35,6 @@
 | [`RealPLKSR`](https://github.com/dslisleedh/PLKSR)						      		| [MIT](https://github.com/dslisleedh/PLKSR/blob/main/LICENSE)							|
 | [`DRCT`](https://github.com/ming053l/DRCT)							      		| [MIT](https://github.com/ming053l/DRCT/blob/main/LICENSE)							|
 | [`MSDAN`](https://github.com/Supereeeee/MSDAN)						      		| Unknown													|
-| [`GW loss`](https://github.com/xiezw5/Component-Divide-and-Conquer-for-Real-World-Image-Super-Resolution/)	| Unknown													|
 | [`Adan`](https://github.com/sail-sg/Adan) optimizer								| [Apache 2.0](https://github.com/sail-sg/Adan/blob/main/LICENSE)						|
 | [`AdamW-Win2`](https://github.com/sail-sg/win)								| [Apache 2.0](https://github.com/sail-sg/win/blob/main/LICENSE)						|
 | [`ECO`](https://github.com/2minkyulee/ECO)									| Unknown													|

@@ -140,7 +140,6 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [Focal Frequency](https://github.com/EndlessSora/focal-frequency-loss) 							| `ff_opt`, `ff_loss`             	     |
 | [DISTS](https://github.com/dingkeyan93/DISTS)				 							| `dists_opt`, `dists_loss`		     |
 | [Wavelet Guided](https://github.com/mandalinadagi/WGSR)		 							| `wavelet_guided`			     |
-| [Gradient-Weighted](https://github.com/xiezw5/Component-Divide-and-Conquer-for-Real-World-Image-Super-Resolution/)		| `gw_opt`, `gw_loss`			     | 
 | [Perceptual Patch Loss](https://github.com/Suanmd/Patch-Loss-for-Super-Resolution)						| `perceptual_opt`, `patchloss`, `ipk`	     |
 | [Consistency Loss](https://github.com/neosr-project/neosr/wiki/Losses#consistency_opt-consistency_loss) (Oklab and CIE L*)	| `consistency_opt`, `consistency_loss`	     |
 | [KL Divergence](https://pytorch.org/docs/stable/generated/torch.nn.KLDivLoss.html)						| `kl_opt`, `kl_loss`			     |

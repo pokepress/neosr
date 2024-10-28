@@ -251,14 +251,6 @@ class image(base):
         else:
             self.cri_ff = None
 
-        # gradient-weighted loss
-        if train_opt.get("gw_opt"):
-            self.cri_gw = build_loss(train_opt["gw_opt"]).to(  # type: ignore[reportCallIssue,attr-defined]
-                self.device, memory_format=torch.channels_last, non_blocking=True
-            )
-        else:
-            self.cri_gw = None
-
         # wavelet-guided loss
         self.wavelet_guided = self.opt["train"].get("wavelet_guided", False)
         self.wavelet_init = self.opt["train"].get("wavelet_init", 0)
@@ -575,11 +567,6 @@ class image(base):
                 l_g_ff = self.cri_ff(self.output, self.gt)
                 l_g_total += l_g_ff
                 loss_dict["l_g_ff"] = l_g_ff
-            # gradient-weighted loss
-            if self.cri_gw:
-                l_g_gw = self.cri_gw(self.output, self.gt)
-                l_g_total += l_g_gw
-                loss_dict["l_g_gw"] = l_g_gw
             # gan loss
             if self.cri_gan:
                 fake_g_pred = self.net_d(self.output)  # type: ignore[reportCallIssue,reportOptionalCall]
