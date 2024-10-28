@@ -16,7 +16,7 @@ from neosr.losses import build_loss
 from neosr.losses.wavelet_guided import wavelet_guided
 from neosr.metrics import calculate_metric
 from neosr.models.base import base
-from neosr.optimizers import adamw_sf, adan, adan_sf, fsam
+from neosr.optimizers import adamw_sf, adan, adan_sf, soap, fsam
 from neosr.utils import get_root_logger, imwrite, tc, tensor2img
 from neosr.utils.registry import MODEL_REGISTRY
 
@@ -263,7 +263,7 @@ class image(base):
         self.wavelet_guided = self.opt["train"].get("wavelet_guided", False)
         self.wavelet_init = self.opt["train"].get("wavelet_init", 0)
         if self.wavelet_guided:
-            logger.info("Loss [Wavelet-Guided] enabled.")
+            logger.info("Loss [wavelet-guided] enabled.")
 
         # gradient clipping
         self.gradclip = self.opt["train"].get("grad_clip", True)
@@ -365,6 +365,8 @@ class image(base):
                 base_optimizer: type[Optimizer] = torch.optim.AdamW  # type: ignore[reportPrivateImportUsage]
             elif optim_type in {"Adan", "adan"}:
                 base_optimizer = adan
+            elif optim_type in {"SOAP", "soap"}:
+                base_optimizer = soap 
             elif optim_type in {"AdamW_SF", "adamw_sf"}:
                 base_optimizer = adamw_sf
             elif optim_type in {"Adan_SF", "adan_sf"}:

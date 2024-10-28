@@ -406,8 +406,8 @@ def wavelet_guided(output: Tensor, gt: Tensor) -> tuple[Tensor, Tensor]:
     )
     wavelet_sr: Tensor = sfm(sr_img_y)[0]
 
-    # LL: Tensor = wavelet_sr[:, 0:1, :, :] * 0.05
-    LH: Tensor = wavelet_sr[:, 1:2, :, :] * 0.025
+    #LL: Tensor = wavelet_sr[:, 0:1, :, :] * 0.02
+    LH: Tensor = wavelet_sr[:, 1:2, :, :] * 0.035
     HL: Tensor = wavelet_sr[:, 2:3, :, :] * 0.025
     HH: Tensor = wavelet_sr[:, 3:, :, :] * 0.02
 
@@ -421,8 +421,8 @@ def wavelet_guided(output: Tensor, gt: Tensor) -> tuple[Tensor, Tensor]:
     )
     wavelet_hr: Tensor = sfm(hr_img_y)[0]
 
-    # LL_gt: Tensor = wavelet_hr[:, 0:1, :, :] * 0.05
-    LH_gt: Tensor = wavelet_hr[:, 1:2, :, :] * 0.025
+    #LL_gt: Tensor = wavelet_hr[:, 0:1, :, :] * 0.02
+    LH_gt: Tensor = wavelet_hr[:, 1:2, :, :] * 0.035
     HL_gt: Tensor = wavelet_hr[:, 2:3, :, :] * 0.025
     HH_gt: Tensor = wavelet_hr[:, 3:, :, :] * 0.02
 

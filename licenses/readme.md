@@ -65,3 +65,4 @@
 | [`MS-SWD`](https://github.com/real-hjq/MS-SWD)								| Unknown													|
 | [`FDL`](https://github.com/eezkni/FDL)									| Unknown													|
 | [`CFSR`](https://github.com/Aitical/CFSR)									| Unknown													|
+| [`SOAP`](https://github.com/nikhilvyas/SOAP)									| [MIT](https://github.com/nikhilvyas/SOAP/blob/main/LICENSE)							|

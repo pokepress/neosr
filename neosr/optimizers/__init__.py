@@ -3,5 +3,6 @@ from neosr.optimizers.adamw_win import adamw_win
 from neosr.optimizers.adan import adan
 from neosr.optimizers.adan_sf import adan_sf
 from neosr.optimizers.fsam import fsam
+from neosr.optimizers.soap import soap 
 
-__all__ = ["adamw_sf", "adamw_win", "adan", "adan_sf", "fsam"]
+__all__ = ["adamw_sf", "adamw_win", "adan", "adan_sf", "fsam", "soap"]

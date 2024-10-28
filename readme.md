@@ -120,8 +120,9 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [AdamW Win2](https://github.com/sail-sg/win)				    | `AdamW_Win` or `adamw_win` |
 | [ECO strategy](https://github.com/2minkyulee/ECO)			    | `eco`, `eco_iters`	 |
 | [AdamW Schedule-Free](https://github.com/facebookresearch/schedule_free)  | `adamw_sf`		 |
-| [Adan Schedule-Free](https://github.com/neosr-project/adan_schedule_free)	    | `adan_sf`			 |
+| [Adan Schedule-Free](https://github.com/neosr-project/adan_schedule_free) | `adan_sf`			 |
 | [F-SAM](https://github.com/nblt/F-SAM)				    | `fsam`, `FSAM`		 |
+| [SOAP](https://github.com/nikhilvyas/SOAP)				    | `soap`			 |
 
 ### [supported losses](https://github.com/neosr-project/neosr/wiki/Losses):
 
