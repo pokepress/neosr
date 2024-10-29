@@ -98,6 +98,7 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [HASN](https://github.com/nathan66666/HASN)					| `hasn`					   |
 | [FlexNet](https://github.com/umzi2/FlexNet)					| `flexnet`, `metaflexnet`			   |
 | [CFSR](https://github.com/Aitical/CFSR)					| `cfsr`					   |
+| [Sebica](https://github.com/idiosyncracies/Sebica)				| `sebica`, `sebica_mini`			   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):
