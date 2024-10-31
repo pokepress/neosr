@@ -596,7 +596,7 @@ class image(base):
             torch.nn.utils.clip_grad_norm_(
                 self.net_g.parameters(),  # type: ignore[reportAttributeAccessIssue,attr-defined]
                 1.0,
-                error_if_nonfinite=True,
+                error_if_nonfinite=False,
             )
 
         # optimize net_d
@@ -660,7 +660,7 @@ class image(base):
                 torch.nn.utils.clip_grad_norm_(
                     self.net_d.parameters(),  # type: ignore[reportAttributeAccessIssue,attr-defined]
                     1.0,
-                    error_if_nonfinite=True,
+                    error_if_nonfinite=False,
                 )
 
         # error if NaN
