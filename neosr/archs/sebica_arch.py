@@ -170,8 +170,12 @@ class sebica(nn.Module):
         for attn_layer in self.body:
             body_out = attn_layer(body_out)
         h = self.tail(body_out)
-        base = F.interpolate(
-            x, scale_factor=self.scale, mode="bilinear", align_corners=False
+        base = torch.clamp(
+            F.interpolate(
+                x, scale_factor=self.scale, mode="bilinear", align_corners=False
+            ),
+            0,
+            1,
         )
         return h + base
 

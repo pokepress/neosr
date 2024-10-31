@@ -94,9 +94,9 @@ def create_train_val_dataloader(
             logger.info(
                 'Training statistics:'
                 f'\n\tStarting model: {opt["name"]}'
-                f'\n\tNumber of GPU detected: {opt["world_size"]}'
+                f'\n\tGPUs detected: {opt["world_size"]}'
                 f'\n\tPatch size: {dataset_opt["patch_size"]}'
-                f'\n\tNumber of train images: {len(train_set)}'  # type: ignore[reportArgumentType]
+                f'\n\tDataset size: {len(train_set)}'  # type: ignore[reportArgumentType]
                 f'\n\tBatch size per gpu: {dataset_opt["batch_size"]}'
                 f'\n\tAccumulated batches: {dataset_opt["batch_size"] * accumulate}'
                 f'\n\tRequired iters per epoch: {num_iter_per_epoch}'
