@@ -1,3 +1,4 @@
+import gc
 import sys
 import time
 from collections import OrderedDict
@@ -418,6 +419,7 @@ class base:
             sys.exit(0)
 
         torch.cuda.empty_cache()
+        gc.collect()
 
     @master_only
     def save_training_state(self, epoch: int, current_iter: int) -> None:
@@ -475,6 +477,9 @@ class base:
             if self.net_d is not None and self.sf_optim_d and self.is_train:
                 self.optimizer_d.train()  # type: ignore[attr-defined]
 
+        torch.cuda.empty_cache()
+        gc.collect()
+
     def resume_training(self, resume_state: dict[Any, Any]) -> None:
         """Reload the optimizers and schedulers for resumed training.
 
@@ -495,6 +500,9 @@ class base:
             self.optimizers[i].load_state_dict(o)
         for i, s in enumerate(resume_schedulers):
             self.schedulers[i].load_state_dict(s)
+
+        torch.cuda.empty_cache()
+        gc.collect()
 
     def reduce_loss_dict(self, loss_dict: dict[Any, Any]) -> OrderedDict:
         """Reduce loss dict.

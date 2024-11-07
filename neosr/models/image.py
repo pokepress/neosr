@@ -899,7 +899,6 @@ class image(base):
             torch.cuda.empty_cache()
 
             # check if dataset has save_img option, and if so overwrite global save_img option
-            save_img = self.opt["val"].get("save_img", True)
             val_suffix = self.opt["val"].get("suffix", None)
             if save_img:
                 if self.opt["is_train"]:

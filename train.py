@@ -92,15 +92,15 @@ def create_train_val_dataloader(
             total_iters = int(opt["logger"].get("total_iter", 1000000) * accumulate)
             total_epochs: int = math.ceil(total_iters / (num_iter_per_epoch))
             logger.info(
-                'Training statistics:'
-                f'\n\tStarting model: {opt["name"]}'
-                f'\n\tGPUs detected: {opt["world_size"]}'
-                f'\n\tPatch size: {dataset_opt["patch_size"]}'
-                f'\n\tDataset size: {len(train_set)}'  # type: ignore[reportArgumentType]
-                f'\n\tBatch size per gpu: {dataset_opt["batch_size"]}'
-                f'\n\tAccumulated batches: {dataset_opt["batch_size"] * accumulate}'
-                f'\n\tRequired iters per epoch: {num_iter_per_epoch}'
-                f'\n\tTotal epochs {total_epochs} for total iters {total_iters // accumulate}.'
+                'Training informations:'
+                f'\n-------- Starting model: {opt["name"]}'
+                f'\n-------- GPUs detected: {opt["world_size"]}'
+                f'\n-------- Patch size: {dataset_opt["patch_size"]}'
+                f'\n-------- Dataset size: {len(train_set)}'  # type: ignore[reportArgumentType]
+                f'\n-------- Batch size per gpu: {dataset_opt["batch_size"]}'
+                f'\n-------- Accumulated batches: {dataset_opt["batch_size"] * accumulate}'
+                f'\n-------- Required iters per epoch: {num_iter_per_epoch}'
+                f'\n-------- Total epochs {total_epochs} for total iters {total_iters // accumulate}.'
             )
         elif phase.split("_")[0] == "val":
             val_set = build_dataset(dataset_opt)
@@ -332,7 +332,7 @@ def train_pipeline(root_path: str) -> None:
                             val_loader,
                             int(current_iter_log),
                             tb_logger,
-                            opt["val"].get("save_img", True),
+                            opt["datasets"]["val"].get("save_img", True),
                         )
 
                 # data_timer.start()

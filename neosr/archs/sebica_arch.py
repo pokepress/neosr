@@ -149,9 +149,10 @@ class Attn(nn.Module):
 
 @ARCH_REGISTRY.register()
 class sebica(nn.Module):
-    def __init__(self, sr_rate=upscale, N=16, mini=False):
+    def __init__(self, sr_rate=upscale, N=16, mini=False, dropout=0.0, **kwargs):
         super().__init__()
         self.scale = sr_rate
+        dropout = dropout if self.training else 0.0
         self.head = nn.Sequential(
             nn.Conv2d(3, N, 3, padding=1), nn.BatchNorm2d(N), nn.ReLU(inplace=True)
         )
@@ -161,12 +162,13 @@ class sebica(nn.Module):
         ])
 
         self.tail = nn.Sequential(
-            nn.Conv2d(N, 3 * sr_rate * sr_rate, 1), nn.PixelShuffle(sr_rate)
+            nn.Conv2d(N, 3 * sr_rate * sr_rate, 1),
+            nn.Dropout(dropout),
+            nn.PixelShuffle(sr_rate),
         )
 
     def forward(self, x):
-        head = self.head(x)
-        body_out = head
+        body_out = self.head(x)
         for attn_layer in self.body:
             body_out = attn_layer(body_out)
         h = self.tail(body_out)

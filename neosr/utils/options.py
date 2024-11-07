@@ -195,6 +195,7 @@ def parse_options(
             opt["manual_seed"] = seed
             torch.backends.cudnn.benchmark = True
             torch.backends.cudnn.benchmark_limit = 0
+            os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         else:
             # Determinism
             opt["deterministic"] = True
