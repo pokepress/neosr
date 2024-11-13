@@ -110,6 +110,7 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [PatchGAN](https://github.com/NVIDIA/pix2pixHD) w/ SN		  		| `patchgan`			|
 | EA2FPN (bespoke, based on [A2-FPN](https://github.com/lironui/A2-FPN))	| `ea2fpn`			|
 | [DUnet](https://github.com/umzi2/DUnet)					| `dunet`			|
+| [MetaGan](https://github.com/umzi2/MetaGan)					| `metagan`			|
 
 ### [supported optimizers](https://github.com/neosr-project/neosr/wiki/Optimizer-Options):
 

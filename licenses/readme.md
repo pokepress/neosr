@@ -66,3 +66,4 @@
 | [`SOAP`](https://github.com/nikhilvyas/SOAP)									| [MIT](https://github.com/nikhilvyas/SOAP/blob/main/LICENSE)							|
 | [`Sebica`](https://github.com/idiosyncracies/Sebica)								| [MIT](https://github.com/idiosyncracies/Sebica/blob/main/LICENSE)						|
 | [`NinaSR`](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)					| [MIT](https://github.com/Coloquinte/torchSR/blob/main/LICENSE)						|
+| [`MetaGan`](https://github.com/umzi2/MetaGan)									| [MIT](https://github.com/umzi2/MetaGan/blob/master/LICENSE)							|
