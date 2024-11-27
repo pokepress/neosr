@@ -474,15 +474,16 @@ class image(base):
             device_type="cuda", dtype=self.amp_dtype, enabled=self.use_amp
         ):
             # eco
-            if self.eco and current_iter <= self.eco_iters:
-                if current_iter < self.eco_init and self.pretrain is None:
-                    self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
+            with torch.inference_mode():
+                if self.eco and current_iter <= self.eco_iters:
+                    if current_iter < self.eco_init and self.pretrain is None:
+                        self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
+                    else:
+                        self.output, self.gt = self.eco_strategy(current_iter)
+                        self.gt = torch.clamp(self.gt, 1 / 255, 1)
                 else:
-                    self.output, self.gt = self.eco_strategy(current_iter)
-                    self.gt = torch.clamp(self.gt, 1 / 255, 1)
-            else:
-                self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
-            self.output = torch.clamp(self.output, 1 / 255, 1)
+                    self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
+                self.output = torch.clamp(self.output, 1 / 255, 1)
 
             # lq match
             if self.match_lq_colors:
