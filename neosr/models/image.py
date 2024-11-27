@@ -474,16 +474,15 @@ class image(base):
             device_type="cuda", dtype=self.amp_dtype, enabled=self.use_amp
         ):
             # eco
-            with torch.inference_mode():
-                if self.eco and current_iter <= self.eco_iters:
-                    if current_iter < self.eco_init and self.pretrain is None:
-                        self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
-                    else:
-                        self.output, self.gt = self.eco_strategy(current_iter)
-                        self.gt = torch.clamp(self.gt, 1 / 255, 1)
-                else:
+            if self.eco and current_iter <= self.eco_iters:
+                if current_iter < self.eco_init and self.pretrain is None:
                     self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
-                self.output = torch.clamp(self.output, 1 / 255, 1)
+                else:
+                    self.output, self.gt = self.eco_strategy(current_iter)
+                    self.gt = torch.clamp(self.gt, 1 / 255, 1)
+            else:
+                self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
+            self.output = torch.clamp(self.output, 1 / 255, 1)
 
             # lq match
             if self.match_lq_colors:
@@ -617,11 +616,10 @@ class image(base):
                     # switch to eval mode
                     self.net_d.eval()
                     # real
-                    with torch.inference_mode():
-                        if self.wavelet_guided and current_iter >= self.wavelet_init:
-                            real_d_pred = self.net_d(combined_HF_gt)  # type: ignore[reportPossiblyUnboundVariable]
-                        else:
-                            real_d_pred = self.net_d(self.gt)  # type: ignore[reportCallIssue]
+                    if self.wavelet_guided and current_iter >= self.wavelet_init:
+                        real_d_pred = self.net_d(combined_HF_gt)  # type: ignore[reportPossiblyUnboundVariable]
+                    else:
+                        real_d_pred = self.net_d(self.gt)  # type: ignore[reportCallIssue]
 
                     l_d_real = self.cri_gan(
                         real_d_pred, target_is_real=True, is_disc=True
@@ -633,11 +631,10 @@ class image(base):
                     loss_dict["out_d_real"] = torch.mean(real_d_pred.detach())
 
                     # fake
-                    with torch.inference_mode():
-                        if self.wavelet_guided and current_iter >= self.wavelet_init:
-                            fake_d_pred = self.net_d(combined_HF.detach())  # type: ignore[reportPossiblyUnboundVariable]
-                        else:
-                            fake_d_pred = self.net_d(self.output.detach())  # type: ignore[reportCallIssue]
+                    if self.wavelet_guided and current_iter >= self.wavelet_init:
+                        fake_d_pred = self.net_d(combined_HF.detach())  # type: ignore[reportPossiblyUnboundVariable]
+                    else:
+                        fake_d_pred = self.net_d(self.output.detach())  # type: ignore[reportCallIssue]
 
                     l_d_fake = self.cri_gan(
                         fake_d_pred, target_is_real=False, is_disc=True
