@@ -569,12 +569,15 @@ class image(base):
                 loss_dict["l_g_ff"] = l_g_ff
             # gan loss
             if self.cri_gan:
+                # switch to eval mode
                 self.net_d.eval()
-                fake_g_pred = self.net_d(self.output)  # type: ignore[reportCallIssue,reportOptionalCall]
-                self.net_d.train()
+                with torch.inference_mode():
+                    fake_g_pred = self.net_d(self.output)  # type: ignore[reportCallIssue,reportOptionalCall]
                 l_g_gan = self.cri_gan(fake_g_pred, target_is_real=True, is_disc=False)
                 l_g_total += l_g_gan
                 loss_dict["l_g_gan"] = l_g_gan
+                # switch to train mode
+                self.net_d.train()
 
         # add total generator loss for tensorboard tracking
         loss_dict["l_g_total"] = l_g_total
@@ -610,11 +613,14 @@ class image(base):
                 device_type="cuda", dtype=self.amp_dtype, enabled=self.use_amp
             ):
                 if self.cri_gan:
+                    # switch to eval mode
+                    self.net_d.eval()
                     # real
-                    if self.wavelet_guided and current_iter >= self.wavelet_init:
-                        real_d_pred = self.net_d(combined_HF_gt)  # type: ignore[reportPossiblyUnboundVariable]
-                    else:
-                        real_d_pred = self.net_d(self.gt)  # type: ignore[reportCallIssue]
+                    with torch.inference_mode():
+                        if self.wavelet_guided and current_iter >= self.wavelet_init:
+                            real_d_pred = self.net_d(combined_HF_gt)  # type: ignore[reportPossiblyUnboundVariable]
+                        else:
+                            real_d_pred = self.net_d(self.gt)  # type: ignore[reportCallIssue]
 
                     l_d_real = self.cri_gan(
                         real_d_pred, target_is_real=True, is_disc=True
@@ -626,10 +632,11 @@ class image(base):
                     loss_dict["out_d_real"] = torch.mean(real_d_pred.detach())
 
                     # fake
-                    if self.wavelet_guided and current_iter >= self.wavelet_init:
-                        fake_d_pred = self.net_d(combined_HF.detach())  # type: ignore[reportPossiblyUnboundVariable]
-                    else:
-                        fake_d_pred = self.net_d(self.output.detach())  # type: ignore[reportCallIssue]
+                    with torch.inference_mode():
+                        if self.wavelet_guided and current_iter >= self.wavelet_init:
+                            fake_d_pred = self.net_d(combined_HF.detach())  # type: ignore[reportPossiblyUnboundVariable]
+                        else:
+                            fake_d_pred = self.net_d(self.output.detach())  # type: ignore[reportCallIssue]
 
                     l_d_fake = self.cri_gan(
                         fake_d_pred, target_is_real=False, is_disc=True
@@ -642,6 +649,9 @@ class image(base):
 
                     # add total discriminator loss for tensorboard tracking
                     loss_dict["l_d_total"] = (l_d_real + l_d_fake) / 2
+
+                    # switch to train mode
+                    self.net_d.train()
 
                     # backward discriminator
                     if self.sam and current_iter >= self.sam_init:
