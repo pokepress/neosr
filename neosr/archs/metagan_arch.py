@@ -51,7 +51,6 @@ class CrossAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        # NOTE scale factor was wrong in my original version, can set manually to be compat with prev weights
         self.scale = qk_scale or head_dim**-0.5
         self.wq = nn.Linear(dim, dim, bias=qkv_bias)
         self.wk = nn.Linear(dim, dim, bias=qkv_bias)
@@ -156,6 +155,7 @@ class Down(nn.Sequential):
 
 @ARCH_REGISTRY.register()
 class metagan(nn.Module):
+    # MetaGan: https://github.com/umzi2/MetaGan
     def __init__(
         self,
         in_ch: int = 3,
