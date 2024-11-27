@@ -569,7 +569,9 @@ class image(base):
                 loss_dict["l_g_ff"] = l_g_ff
             # gan loss
             if self.cri_gan:
+                self.net_d.eval()
                 fake_g_pred = self.net_d(self.output)  # type: ignore[reportCallIssue,reportOptionalCall]
+                self.net_d.train()
                 l_g_gan = self.cri_gan(fake_g_pred, target_is_real=True, is_disc=False)
                 l_g_total += l_g_gan
                 loss_dict["l_g_gan"] = l_g_gan
