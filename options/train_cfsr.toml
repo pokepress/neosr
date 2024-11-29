@@ -46,12 +46,12 @@ type = "ea2fpn"
 
 [train]
 ema = 0.999
+wavelet_guided = true
+wavelet_init = 80000
 #sam = "fsam"
 #sam_init = 1000
 #eco = true
 #eco_init = 15000
-#wavelet_guided = true
-#wavelet_init = 80000
 #match_lq_colors = true
 
 [train.optim_g]
@@ -78,39 +78,35 @@ loss_weight = 1.0
 [train.consistency_opt]
 type = "consistency_loss"
 loss_weight = 1.0
-#saturation = 1.0
-#brightness = 1.0
 
-[train.perceptual_opt]
-type = "vgg_perceptual_loss"
-loss_weight = 0.5
-criterion = "huber"
-#patchloss = true
-#ipk = true
-#patch_weight = 1.0
+[train.ldl_opt]
+type = "ldl_loss"
+loss_weight = 1.0
+
+[train.fdl_opt]
+type = "fdl_loss"
+model = "vgg" # "resnet", "effnet", "inception"
 
 [train.gan_opt]
 type = "gan_loss"
 gan_type = "bce"
 loss_weight = 0.1
 
-#[train.fdl_opt]
-#type = "fdl_loss"
-#model = "vgg" # "resnet", "effnet", "inception"
-#loss_weight = 0.5
-
 #[train.msswd_opt]
 #type = "msswd_loss"
 #loss_weight = 1.0
 
+#[train.perceptual_opt]
+#type = "vgg_perceptual_loss"
+#loss_weight = 0.5
+#criterion = "huber"
+##patchloss = true
+##ipk = true
+##patch_weight = 1.0
+
 #[train.dists_opt]
 #type = "dists_loss"
 #loss_weight = 0.5
-
-#[train.ldl_opt]
-#type = "ldl_loss"
-#loss_weight = 1.0
-#criterion = "chc"
 
 #[train.ff_opt]
 #type = "ff_loss"

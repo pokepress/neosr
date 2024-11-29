@@ -18,14 +18,14 @@ pywavelets = "^1.7.0"
 scipy = "^1.14.1"
 tqdm = "^4.66.5"
 tb-nightly = "^2.19.0a20241004"
-torch = {version = "^2.5.0+cu124", source = "pytorch-gpu-src"}
-torchvision = {version = "^0.20.0+cu124", source = "pytorch-gpu-src"}
 onnx = "^1.17.0"
 onnxruntime-gpu = "^1.19.2"
 onnxconverter-common = "^1.14.0"
+torch = {version = "^2.5.1+cu124", source = "pytorch_gpu"}
+torchvision = {version = "^0.20.1+cu124", source = "pytorch_gpu"}
 
 [[tool.poetry.source]]
-name = "pytorch-gpu-src"
+name = "pytorch_gpu"
 url = "https://download.pytorch.org/whl/cu124"
 priority = "explicit"
 
