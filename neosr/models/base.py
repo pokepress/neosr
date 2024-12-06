@@ -135,7 +135,9 @@ class base:
             net = net.to(self.device, non_blocking=True)  # type: ignore[attr-defined]
 
         if self.opt.get("compile", False) is True:
-            net = torch.compile(net, mode="max-autotune", options={"epilogue_fusion": True})  # type: ignore[assignment]
+            net = torch.compile(
+                net, mode="max-autotune", options={"epilogue_fusion": True}
+            )  # type: ignore[assignment]
             # see option fullgraph=True
 
         if self.opt["dist"]:
@@ -170,7 +172,7 @@ class base:
             logger.error(msg)
             sys.exit(1)
 
-        return cast(Optimizer, optimizer)
+        return cast("Optimizer", optimizer)
 
     def setup_schedulers(self) -> None:
         """Set up schedulers."""
@@ -305,9 +307,9 @@ class base:
 
         net = net if isinstance(net, list) else [net]
         param_key = param_key if isinstance(param_key, list) else [param_key]
-        assert len(net) == len(
-            param_key
-        ), "The lengths of net and param_key should be the same."
+        assert len(net) == len(param_key), (
+            "The lengths of net and param_key should be the same."
+        )
 
         save_dict = {}
         for net_, param_key_ in zip(net, param_key, strict=True):
@@ -488,12 +490,12 @@ class base:
         """
         resume_optimizers = resume_state["optimizers"]
         resume_schedulers = resume_state["schedulers"]
-        assert len(resume_optimizers) == len(
-            self.optimizers
-        ), "Wrong lengths of optimizers"
-        assert len(resume_schedulers) == len(
-            self.schedulers
-        ), "Wrong lengths of schedulers"
+        assert len(resume_optimizers) == len(self.optimizers), (
+            "Wrong lengths of optimizers"
+        )
+        assert len(resume_schedulers) == len(self.schedulers), (
+            "Wrong lengths of schedulers"
+        )
         for i, o in enumerate(resume_optimizers):
             self.optimizers[i].load_state_dict(o)
         for i, s in enumerate(resume_schedulers):
@@ -515,11 +517,11 @@ class base:
         with torch.inference_mode():
             if self.opt["dist"]:
                 keys = []
-                _losses = []
+                losses_ = []
                 for name, value in loss_dict.items():
                     keys.append(name)
-                    _losses.append(value)
-                losses = torch.stack(_losses, 0)
+                    losses_.append(value)
+                losses = torch.stack(losses_, 0)
                 losses = torch.distributed.reduce(losses, dst=0)  # type: ignore[reportAttributeAccessIssue]
                 print(losses)
                 if self.opt["rank"] == 0:

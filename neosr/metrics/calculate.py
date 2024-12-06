@@ -38,9 +38,9 @@ def calculate_psnr(
         float: PSNR result.
 
     """
-    assert (
-        img.shape == img2.shape
-    ), f"Image shapes are different: {img.shape}, {img2.shape}."
+    assert img.shape == img2.shape, (
+        f"Image shapes are different: {img.shape}, {img2.shape}."
+    )
     if input_order not in {"HWC", "CHW"}:
         msg = f'Wrong input_order {input_order}. Supported input_orders are "HWC" and "CHW"'
         raise ValueError(msg)
@@ -97,9 +97,9 @@ def calculate_ssim(
         float: SSIM result.
 
     """
-    assert (
-        img.shape == img2.shape
-    ), f"Image shapes are different: {img.shape}, {img2.shape}."
+    assert img.shape == img2.shape, (
+        f"Image shapes are different: {img.shape}, {img2.shape}."
+    )
     if input_order not in {"HWC", "CHW"}:
         msg = f'Wrong input_order {input_order}. Supported input_orders are "HWC" and "CHW"'
         raise ValueError(msg)
@@ -154,7 +154,7 @@ def _ssim(img: np.ndarray | MatLike, img2: np.ndarray | MatLike) -> float:
     sigma1_sq = cv2.filter2D(img**2, -1, window)[5:-5, 5:-5] - mu1_sq
     sigma2_sq = cv2.filter2D(img2**2, -1, window)[5:-5, 5:-5] - mu2_sq
     sigma12 = (
-        cv2.filter2D(cast(MatLike, (img * img2)), -1, window)[5:-5, 5:-5] - mu1_mu2
+        cv2.filter2D(cast("MatLike", (img * img2)), -1, window)[5:-5, 5:-5] - mu1_mu2
     )
 
     ssim_map = ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) / (
@@ -181,12 +181,12 @@ def calculate_dists(
         float: SSIM result.
 
     """
-    assert (
-        img.shape == img2.shape
-    ), f"Image shapes are different: {img.shape}, {img2.shape}."
+    assert img.shape == img2.shape, (
+        f"Image shapes are different: {img.shape}, {img2.shape}."
+    )
 
     # to tensor
-    img, img2 = cast(Tensor, img2tensor([img, img2]))
+    img, img2 = cast("Tensor", img2tensor([img, img2]))
     # normalize to [0, 1]
     img, img2 = img / 255, img2 / 255
     # add dim

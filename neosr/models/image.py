@@ -16,7 +16,7 @@ from neosr.losses import build_loss
 from neosr.losses.wavelet_guided import wavelet_guided
 from neosr.metrics import calculate_metric
 from neosr.models.base import base
-from neosr.optimizers import adamw_sf, adan, adan_sf, soap, fsam
+from neosr.optimizers import adamw_sf, adan, adan_sf, fsam
 from neosr.utils import get_root_logger, imwrite, tc, tensor2img
 from neosr.utils.registry import MODEL_REGISTRY
 
@@ -357,8 +357,6 @@ class image(base):
                 base_optimizer: type[Optimizer] = torch.optim.AdamW  # type: ignore[reportPrivateImportUsage]
             elif optim_type in {"Adan", "adan"}:
                 base_optimizer = adan
-            elif optim_type in {"SOAP", "soap"}:
-                base_optimizer = soap 
             elif optim_type in {"AdamW_SF", "adamw_sf"}:
                 base_optimizer = adamw_sf
             elif optim_type in {"Adan_SF", "adan_sf"}:
@@ -831,22 +829,22 @@ class image(base):
                         out = self.net_g(chop)  # type: ignore[reportCallIssue,operator]
 
                     outputs.append(out)
-                _img = torch.zeros(1, C, H * scale, W * scale)
+                img_ = torch.zeros(1, C, H * scale, W * scale)
                 # merge
                 for i in range(ral):
                     for j in range(row):
                         top = slice(i * split_h * scale, (i + 1) * split_h * scale)
                         left = slice(j * split_w * scale, (j + 1) * split_w * scale)
                         if i == 0:
-                            _top = slice(0, split_h * scale)
+                            top_ = slice(0, split_h * scale)
                         else:
-                            _top = slice(shave_h * scale, (shave_h + split_h) * scale)
+                            top_ = slice(shave_h * scale, (shave_h + split_h) * scale)
                         if j == 0:
-                            _left = slice(0, split_w * scale)
+                            left_ = slice(0, split_w * scale)
                         else:
-                            _left = slice(shave_w * scale, (shave_w + split_w) * scale)
-                        _img[..., top, left] = outputs[i * row + j][..., _top, _left]
-                self.output = _img
+                            left_ = slice(shave_w * scale, (shave_w + split_w) * scale)
+                        img_[..., top, left] = outputs[i * row + j][..., top_, left_]
+                self.output = img_
             self.net_g.train()  # type: ignore[reportAttributeAccessIssue,attr-defined]
             if self.sf_optim_g and self.is_train:
                 self.optimizer_g.train()  # type: ignore[attr-defined]
@@ -925,13 +923,13 @@ class image(base):
                     save_img_path = (
                         Path(self.opt["path"]["visualization"])
                         / dataset_name
-                        / f'{img_name}_{self.opt["val"]["suffix"]}.png'
+                        / f"{img_name}_{self.opt['val']['suffix']}.png"
                     )
                 else:
                     save_img_path = (
                         Path(self.opt["path"]["visualization"])
                         / dataset_name
-                        / f'{img_name}_{self.opt["name"]}.png'
+                        / f"{img_name}_{self.opt['name']}.png"
                     )
                 imwrite(sr_img, str(save_img_path))  # type: ignore[arg-type]
 
@@ -987,8 +985,8 @@ class image(base):
             log_str += f"\t # {metric}: {value:.4f}"
             if hasattr(self, "best_metric_results"):
                 log_str += (
-                    f'{tc.light_green}........ Best: {self.best_metric_results[dataset_name][metric]["val"]:.4f} @ '
-                    f'{self.best_metric_results[dataset_name][metric]["iter"]} iter{tc.end}'
+                    f"{tc.light_green}........ Best: {self.best_metric_results[dataset_name][metric]['val']:.4f} @ "
+                    f"{self.best_metric_results[dataset_name][metric]['iter']} iter{tc.end}"
                 )
             log_str += "\n"
 

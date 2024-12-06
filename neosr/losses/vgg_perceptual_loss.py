@@ -159,11 +159,11 @@ class vgg_perceptual_loss(nn.Module):
         kernels = self.ipk_kernels if is_ipk else self.perceptual_kernels
 
         for _kernel in kernels:
-            _patchkernel3d = PatchesKernel3D(_kernel, _kernel // 2).to(
+            patchkernel3d = PatchesKernel3D(_kernel, _kernel // 2).to(
                 x.device, non_blocking=True
             )  # create instance
-            x_trans = _patchkernel3d(x)
-            gt_trans = _patchkernel3d(gt)
+            x_trans = patchkernel3d(x)
+            gt_trans = patchkernel3d(gt)
             x_trans = x_trans.reshape(-1, x_trans.shape[-1])
             gt_trans = gt_trans.reshape(-1, gt_trans.shape[-1])
 
@@ -178,7 +178,7 @@ class vgg_perceptual_loss(nn.Module):
                 torch.sqrt(torch.sum(gt_trans**2, dim=1)),
             )
             cosine_x_y_d = torch.mul((1 - cosine_x_y), dy)  # y = (1-x)dy
-            loss = loss + cast(float, torch.mean(cosine_x_y_d))
+            loss = loss + cast("float", torch.mean(cosine_x_y_d))
 
         return loss
 

@@ -80,9 +80,9 @@ def build_dataloader(
 
     # train
     if phase == "train":
-        if dataset_opt.get("num_worker_per_gpu", None) is None:
+        if dataset_opt.get("num_worker_per_gpu") is None:
             num_workers = 4
-        elif dataset_opt.get("num_worker_per_gpu", None) == "auto":
+        elif dataset_opt.get("num_worker_per_gpu") == "auto":
             num_workers = os.cpu_count()
         else:
             num_workers = dataset_opt["num_worker_per_gpu"]

@@ -58,7 +58,6 @@ class otf(data.Dataset):
             sys.exit(1)
 
         # sets flag for file_client.py
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
         if self.gt_folder.endswith("lmdb"):
             self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
             lmdb = True

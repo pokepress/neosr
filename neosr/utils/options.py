@@ -221,8 +221,8 @@ def parse_options(
         # datasets
         for phase, dataset in opt["datasets"].items():
             # for multiple datasets, e.g., val_1, val_2; test_1, test_2
-            _phase = phase.split("_")[0]
-            dataset["phase"] = _phase
+            phase_ = phase.split("_")[0]
+            dataset["phase"] = phase_
             if "scale" in opt:
                 dataset["scale"] = opt["scale"]
             if dataset.get("dataroot_gt") is not None:

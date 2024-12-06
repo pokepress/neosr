@@ -40,7 +40,6 @@ class single(data.Dataset):
         self.color = self.opt.get("color", None) != "y"
 
         # sets flag for file_client.py
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
         if self.lq_folder.endswith("lmdb"):
             self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
             lmdb = True

@@ -43,11 +43,11 @@ class otf(image):  # type: ignore[reportGeneralTypeIssues]
         to increase the degradation diversity in a batch.
         """
         # initialize
-        b, c, h, w = cast(Tensor, self.lq).size()
+        b, c, h, w = cast("Tensor", self.lq).size()
         if not hasattr(self, "queue_lr"):
-            assert (
-                self.queue_size % b == 0
-            ), f"queue size {self.queue_size} should be divisible by batch size {b}"
+            assert self.queue_size % b == 0, (
+                f"queue size {self.queue_size} should be divisible by batch size {b}"
+            )
             self.queue_lr = torch.zeros(
                 self.queue_size,
                 c,
@@ -55,7 +55,7 @@ class otf(image):  # type: ignore[reportGeneralTypeIssues]
                 w,
                 device=self.device,  # type: ignore[reportArgumentType]
             ).cuda()
-            _, c, h, w = cast(Tensor, self.gt).size()
+            _, c, h, w = cast("Tensor", self.gt).size()
             self.queue_gt = torch.zeros(
                 self.queue_size,
                 c,
@@ -74,8 +74,8 @@ class otf(image):  # type: ignore[reportGeneralTypeIssues]
             lq_dequeue = self.queue_lr[0:b, :, :, :].clone()
             gt_dequeue = self.queue_gt[0:b, :, :, :].clone()
             # update the queue
-            self.queue_lr[0:b, :, :, :] = cast(Tensor, self.lq).clone()
-            self.queue_gt[0:b, :, :, :] = cast(Tensor, self.gt).clone()
+            self.queue_lr[0:b, :, :, :] = cast("Tensor", self.lq).clone()
+            self.queue_gt[0:b, :, :, :] = cast("Tensor", self.gt).clone()
 
             self.lq: Tensor = lq_dequeue
             self.gt: Tensor = gt_dequeue
@@ -258,8 +258,8 @@ class otf(image):  # type: ignore[reportGeneralTypeIssues]
 
             # training pair pool
             self._dequeue_and_enqueue()
-            self.lq = cast(Tensor, self.lq)
-            self.gt = cast(Tensor, self.gt)
+            self.lq = cast("Tensor", self.lq)
+            self.gt = cast("Tensor", self.gt)
             # for the warning: grad and param do not obey the gradient layout contract
             self.lq = self.lq.contiguous()
 

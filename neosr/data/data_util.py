@@ -48,9 +48,9 @@ def paired_paths_from_lmdb(folders: list[str], keys: list[str]) -> list[str]:
         "The len of folders should be 2 with [input_folder, gt_folder]. "
         f"But got {len(folders)}"
     )
-    assert (
-        len(keys) == 2
-    ), f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    assert len(keys) == 2, (
+        f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    )
     input_folder, gt_folder = folders
     input_key, gt_key = keys
 
@@ -108,9 +108,9 @@ def paired_paths_from_meta_info_file(
         "The len of folders should be 2 with [input_folder, gt_folder]. "
         f"But got {len(folders)}"
     )
-    assert (
-        len(keys) == 2
-    ), f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    assert len(keys) == 2, (
+        f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    )
     input_folder, gt_folder = folders
     input_key, gt_key = keys
 
@@ -146,9 +146,9 @@ def paired_paths_from_folder(
         "The len of folders should be 2 with [input_folder, gt_folder]. "
         f"But got {len(folders)}"
     )
-    assert (
-        len(keys) == 2
-    ), f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    assert len(keys) == 2, (
+        f"The len of keys should be 2 with [input_key, gt_key]. But got {len(keys)}"
+    )
 
     extensions = (".jpg", ".jpeg", ".png", ".webp")
     input_folder, gt_folder = folders

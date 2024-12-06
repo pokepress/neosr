@@ -21,7 +21,7 @@ def test_pipeline(root_path: str) -> None:
 
     # mkdir and initialize loggers
     make_exp_dirs(opt)
-    log_file = Path(opt["path"]["log"]) / f"test_{opt["name"]}_{get_time_str()}.log"
+    log_file = Path(opt["path"]["log"]) / f"test_{opt['name']}_{get_time_str()}.log"
     logger = get_root_logger(
         logger_name="neosr", log_level=logging.INFO, log_file=str(log_file)
     )
@@ -39,7 +39,7 @@ def test_pipeline(root_path: str) -> None:
             sampler=None,
             seed=opt["manual_seed"],
         )
-        logger.info(f"Number of test images in {dataset_opt["name"]}: {len(test_set)}")  # type: ignore[reportArgumentType]
+        logger.info(f"Number of test images in {dataset_opt['name']}: {len(test_set)}")  # type: ignore[reportArgumentType]
         test_loaders.append(test_loader)
 
     # create model

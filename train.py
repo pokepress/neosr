@@ -33,9 +33,10 @@ from neosr.utils import (
 from neosr.utils.options import copy_opt_file, parse_options
 
 # minimum supported python version
-if sys.version_info.major != 3 or sys.version_info.minor != 12:  # noqa: UP036
+if sys.version_info.major != 3 or sys.version_info.minor != 12:
     msg = f"{tc.red}Python version 3.12 is required.{tc.end}"
     raise ValueError(msg)
+
 
 def init_tb_loggers(opt: dict[str, Any]):
     # initialize wandb logger before tensorboard logger to allow proper sync
@@ -44,9 +45,9 @@ def init_tb_loggers(opt: dict[str, Any]):
         and (opt["logger"]["wandb"].get("project") is not None)
         and ("debug" not in opt["name"])
     ):
-        assert (
-            opt["logger"].get("use_tb_logger") is True
-        ), "should turn on tensorboard when using wandb"
+        assert opt["logger"].get("use_tb_logger") is True, (
+            "should turn on tensorboard when using wandb"
+        )
         init_wandb_logger(opt)
     tb_logger = None
     if opt["logger"].get("use_tb_logger") and "debug" not in opt["name"]:
@@ -89,17 +90,17 @@ def create_train_val_dataloader(
                 / (dataset_opt["batch_size"] * accumulate * opt["world_size"])
             )
             total_iters = int(opt["logger"].get("total_iter", 1000000) * accumulate)
-            total_epochs: int = int(math.ceil(total_iters / num_iter_per_epoch))
+            total_epochs: int = math.ceil(total_iters / num_iter_per_epoch)
             logger.info(
-                'Training informations:'
-                f'\n-------- Starting model: {opt["name"]}'
-                f'\n-------- GPUs detected: {opt["world_size"]}'
-                f'\n-------- Patch size: {dataset_opt["patch_size"]}'
-                f'\n-------- Dataset size: {len(train_set)}'  # type: ignore[reportArgumentType]
-                f'\n-------- Batch size per gpu: {dataset_opt["batch_size"]}'
-                f'\n-------- Accumulated batches: {dataset_opt["batch_size"] * accumulate}'
-                f'\n-------- Required iters per epoch: {num_iter_per_epoch}'
-                f'\n-------- Total epochs {total_epochs} for total iters {total_iters // accumulate}.'
+                "Training informations:"
+                f"\n-------- Starting model: {opt['name']}"
+                f"\n-------- GPUs detected: {opt['world_size']}"
+                f"\n-------- Patch size: {dataset_opt['patch_size']}"
+                f"\n-------- Dataset size: {len(train_set)}"  # type: ignore[reportArgumentType]
+                f"\n-------- Batch size per gpu: {dataset_opt['batch_size']}"
+                f"\n-------- Accumulated batches: {dataset_opt['batch_size'] * accumulate}"
+                f"\n-------- Required iters per epoch: {num_iter_per_epoch}"
+                f"\n-------- Total epochs {total_epochs} for total iters {total_iters // accumulate}."
             )
         elif phase.split("_")[0] == "val":
             val_set = build_dataset(dataset_opt)
@@ -195,7 +196,7 @@ def train_pipeline(root_path: str) -> None:
 
     # WARNING: should not use get_root_logger in the above codes, including the called functions
     # Otherwise the logger will not be properly initialized
-    log_file = Path(opt["path"]["log"]) / f"train_{opt["name"]}_{get_time_str()}.log"
+    log_file = Path(opt["path"]["log"]) / f"train_{opt['name']}_{get_time_str()}.log"
     logger = get_root_logger(
         logger_name="neosr", log_level=logging.INFO, log_file=str(log_file)
     )
@@ -224,7 +225,7 @@ def train_pipeline(root_path: str) -> None:
         # handle optimizers and schedulers
         model.resume_training(resume_state)  # type: ignore[reportAttributeAccessIssue,attr-defined]
         logger.info(
-            f"{tc.light_green}Resuming training from epoch: {resume_state["epoch"]}, iter: {int(resume_state["iter"])}{tc.end}"
+            f"{tc.light_green}Resuming training from epoch: {resume_state['epoch']}, iter: {int(resume_state['iter'])}{tc.end}"
         )
         start_epoch = resume_state["epoch"]
         current_iter = int(

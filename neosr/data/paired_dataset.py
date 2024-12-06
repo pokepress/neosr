@@ -60,7 +60,6 @@ class paired(data.Dataset):
         self.gt_folder, self.lq_folder = opt["dataroot_gt"], opt["dataroot_lq"]
 
         # sets flag for file_client.py
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
         if self.gt_folder.endswith("lmdb") and self.lq_folder.endswith("lmdb"):
             self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
             lmdb = True

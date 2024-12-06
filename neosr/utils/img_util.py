@@ -94,20 +94,20 @@ def tensor2img(
         tensor = [tensor]  # type: ignore[reportAssignmentType,list-item]
 
     result = []
-    for _tensor in tensor:
-        _tensor = _tensor.squeeze(0).float().detach().cpu().clamp_(*min_max)
-        _tensor = (_tensor - min_max[0]) / (min_max[1] - min_max[0])
+    for tensor_ in tensor:
+        n_tensor = tensor_.squeeze(0).float().detach().cpu().clamp_(*min_max)
+        n_tensor = (tensor_ - min_max[0]) / (min_max[1] - min_max[0])
 
-        n_dim = _tensor.dim()
+        n_dim = n_tensor.dim()
         if n_dim == 4:
             img_np = make_grid(
-                _tensor, nrow=int(math.sqrt(_tensor.size(0))), normalize=False
+                n_tensor, nrow=int(math.sqrt(n_tensor.size(0))), normalize=False
             ).numpy()
             img_np = img_np.transpose(1, 2, 0)
             if rgb2bgr:
                 img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
         elif n_dim == 3:
-            img_np = _tensor.numpy()
+            img_np = n_tensor.numpy()
             img_np = img_np.transpose(1, 2, 0)
             if img_np.shape[2] == 1:  # gray image
                 img_np = np.squeeze(img_np, axis=2)
@@ -115,7 +115,7 @@ def tensor2img(
                 if rgb2bgr:
                     img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
         elif n_dim == 2:
-            img_np = _tensor.numpy()
+            img_np = n_tensor.numpy()
         else:
             msg = f"Only support 4D, 3D or 2D tensor. But received with dimension: {n_dim}"
             raise TypeError(msg)

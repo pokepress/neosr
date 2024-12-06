@@ -46,12 +46,12 @@ class ff_loss(nn.Module):
         # crop image patches
         patch_factor = self.patch_factor
         _, _, h, w = x.shape
-        assert (
-            h % patch_factor == 0
-        ), "Patch factor should be divisible by image height and width"
-        assert (
-            w % patch_factor == 0
-        ), "Patch factor should be divisible by image height and width"
+        assert h % patch_factor == 0, (
+            "Patch factor should be divisible by image height and width"
+        )
+        assert w % patch_factor == 0, (
+            "Patch factor should be divisible by image height and width"
+        )
         patch_list = []
         patch_h = h // patch_factor
         patch_w = w // patch_factor
@@ -92,19 +92,19 @@ class ff_loss(nn.Module):
                 matrix_tmp /= matrix_tmp.max()
             else:
                 matrix_tmp /= (
-                    matrix_tmp.max(-1).values.max(-1).values[:, :, :, None, None]  # noqa: PD011
+                    matrix_tmp.max(-1).values.max(-1).values[:, :, :, None, None]
                 )
 
             matrix_tmp[torch.isnan(matrix_tmp)] = 0.0
             matrix_tmp = torch.clamp(matrix_tmp, min=0.0, max=1.0)
             weight_matrix = matrix_tmp.clone().detach()
 
-        assert (
-            weight_matrix.min().item() >= 0
-        ), "The values of spectrum weight matrix should be in the range [0, 1]"
-        assert (
-            weight_matrix.max().item() <= 1
-        ), "The values of spectrum weight matrix should be in the range [0, 1]"
+        assert weight_matrix.min().item() >= 0, (
+            "The values of spectrum weight matrix should be in the range [0, 1]"
+        )
+        assert weight_matrix.max().item() <= 1, (
+            "The values of spectrum weight matrix should be in the range [0, 1]"
+        )
 
         # frequency distance using (squared) Euclidean distance
         tmp = (recon_freq - real_freq) ** 2

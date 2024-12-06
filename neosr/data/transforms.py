@@ -68,9 +68,9 @@ def paired_random_crop(
 
     """
     if not isinstance(img_gts, list):
-        img_gts = cast(list[np.ndarray], [img_gts])
+        img_gts = cast("list[np.ndarray]", [img_gts])
     if not isinstance(img_lqs, list):
-        img_lqs = cast(list[np.ndarray], [img_lqs])
+        img_lqs = cast("list[np.ndarray]", [img_lqs])
 
     # initialize logger
     logger = get_root_logger()
@@ -183,7 +183,7 @@ def basic_augment(
 
     if not isinstance(imgs, list):
         imgs = [imgs]
-    imgs = [_augment(cast(np.ndarray, img)) for img in imgs]
+    imgs = [_augment(cast("np.ndarray", img)) for img in imgs]
     if len(imgs) == 1:
         imgs = imgs[0]
 

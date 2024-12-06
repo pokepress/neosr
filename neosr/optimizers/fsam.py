@@ -83,9 +83,9 @@ class fsam(Optimizer):
     def step(  # type: ignore[reportIncompatibleMethodOverride]
         self, closure: Callable[..., Any] | None = None, current_iter: int | None = None
     ):
-        assert (
-            closure is not None
-        ), "Sharpness Aware Minimization requires closure, but it was not provided"
+        assert closure is not None, (
+            "Sharpness Aware Minimization requires closure, but it was not provided"
+        )
         closure = torch.enable_grad()(
             closure
         )  # the closure should do a full forward-backward pass
