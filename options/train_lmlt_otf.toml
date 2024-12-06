@@ -2,9 +2,9 @@
 name = "train_lmlt_otf"
 model_type = "otf"
 scale = 4
-#use_amp = true
-#bfloat16 = true
-#fast_matmul = true
+use_amp = true
+bfloat16 = true
+fast_matmul = true
 #compile = true
 #manual_seed = 1024
 
@@ -90,7 +90,7 @@ type = "lmlt"
 #type = "lmlt_large"
 
 [network_d]
-type = "ea2fpn"
+type = "metagan"
 
 [train]
 ema = 0.999
@@ -139,7 +139,7 @@ loss_weight = 0.5
 [train.gan_opt]
 type = "gan_loss"
 gan_type = "bce"
-loss_weight = 0.1
+loss_weight = 0.3
 
 #[train.msswd_opt]
 #type = "msswd_loss"

@@ -34,18 +34,21 @@ class single(data.Dataset):
         self.opt = opt
         # file client (io backend)
         self.file_client: FileClient | None = None
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
-        # default to 'disk' if not specified
-        if io_backend_opt is None:
-            self.io_backend_opt = {"type": "disk"}
-        else:
-            self.io_backend_opt = io_backend_opt
         self.mean = opt.get("mean")
         self.std = opt.get("std")
         self.lq_folder = opt["dataroot_lq"]
         self.color = self.opt.get("color", None) != "y"
 
-        if self.io_backend_opt["type"] == "lmdb":
+        # sets flag for file_client.py
+        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
+        if self.lq_folder.endswith("lmdb"):
+            self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
+            lmdb = True
+        else:
+            self.io_backend_opt: dict[str, str] = {"type": "disk"}
+            lmdb = False
+
+        if lmdb:
             self.io_backend_opt["db_paths"] = [self.lq_folder]  # type: ignore[assignment]
             self.io_backend_opt["client_keys"] = ["lq"]  # type: ignore[assignment]
             self.paths = paths_from_lmdb(self.lq_folder)

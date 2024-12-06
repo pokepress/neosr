@@ -46,25 +46,28 @@ class otf(data.Dataset):
 
     def __init__(self, opt: dict[str, Any]) -> None:
         super().__init__()
+        logger = get_root_logger()
         self.opt = opt
         self.file_client: FileClient | None = None
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
-        # default to 'disk' if not specified
-        if io_backend_opt is None:
-            self.io_backend_opt = {"type": "disk"}
-        else:
-            self.io_backend_opt = io_backend_opt
         self.color = self.opt.get("color", None) != "y"
         self.gt_folder = opt["dataroot_gt"]
-        logger = get_root_logger()
 
         if opt.get("dataroot_lq") is not None:
-            msg = f"{tc.red}'dataroot_lq' not supported by otf, please switch to paired.{tc.end}"
+            msg = f"{tc.red}'dataroot_lq' not supported by otf, please switch to paired or remove it.{tc.end}"
             logger.error(msg)
             sys.exit(1)
 
+        # sets flag for file_client.py
+        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
+        if self.gt_folder.endswith("lmdb"):
+            self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
+            lmdb = True
+        else:
+            self.io_backend_opt: dict[str, str] = {"type": "disk"}
+            lmdb = False
+
         # file client (lmdb io backend)
-        if self.io_backend_opt["type"] == "lmdb":
+        if lmdb:
             self.io_backend_opt["db_paths"] = [self.gt_folder]  # type: ignore[assignment]
             self.io_backend_opt["client_keys"] = ["gt"]  # type: ignore[assignment]
             if not self.gt_folder.endswith(".lmdb"):

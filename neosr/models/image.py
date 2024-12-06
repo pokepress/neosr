@@ -584,6 +584,7 @@ class image(base):
 
         # divide losses by accumulation factor
         l_g_total /= self.accum_iters
+        l_g_total.detach()
 
         # backward generator
         if self.sam and current_iter >= self.sam_init:
@@ -647,6 +648,9 @@ class image(base):
 
                     # add total discriminator loss for tensorboard tracking
                     loss_dict["l_d_total"] = (l_d_real + l_d_fake) / 2
+
+                    l_d_real.detach()
+                    l_d_fake.detach()
 
                     # switch to train mode
                     self.net_d.train()

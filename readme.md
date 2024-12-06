@@ -81,6 +81,15 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [MoSR](https://github.com/umzi2/MoSR)								    | `mosr`, `mosr_t`						|
 | [GRFormer](https://github.com/sisrformer/GRFormer)						    | `grformer`, `grformer_medium`, `grformer_large`  |
 | [EIMN](https://github.com/liux520/EIMN)							    | `eimn`, `eimn_a`, `eimn_l`			   |
+| [LMLT](https://github.com/jwgdmkj/LMLT)					| `lmlt`, `lmlt_tiny`, `lmlt_large`		   |
+| [DCT](https://github.com/zhengchen1999/DCT)					| `dct`						   |
+| [KRGN](https://github.com/ZhangDY827/KRGN)					| `krgn`					   |
+| [PlainUSR](https://github.com/icandle/PlainUSR)				| `plainusr`, `plainusr_ultra`, `plainusr_large`   | 
+| [HASN](https://github.com/nathan66666/HASN)					| `hasn`					   |
+| [FlexNet](https://github.com/umzi2/FlexNet)					| `flexnet`, `metaflexnet`			   |
+| [CFSR](https://github.com/Aitical/CFSR)					| `cfsr`					   |
+| [Sebica](https://github.com/idiosyncracies/Sebica)				| `sebica`, `sebica_mini`			   |
+| [NinaSR](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)	| `ninasr`, `ninasr_b0`, `ninasr_b2`		   |
 
 > [!NOTE]
 > For all arch-specific parameters, [read the wiki](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options).
@@ -89,17 +98,7 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 
 | arch										| option					   |
 |-------------------------------------------------------------------------------|--------------------------------------------------|
-| [Swin2-MoSE](https://github.com/hachreak/swin2-mose)				| `swin2mose`					   |
-| [LMLT](https://github.com/jwgdmkj/LMLT)					| `lmlt`, `lmlt_tiny`, `lmlt_large`		   |
-| [DCT](https://github.com/zhengchen1999/DCT)					| `dct`						   |
-| [FIWHN](https://github.com/24wenjie-li/FIWHN)					| `fiwhn`					   |
-| [KRGN](https://github.com/ZhangDY827/KRGN)					| `krgn`					   |
-| [PlainUSR](https://github.com/icandle/PlainUSR)				| `plainusr`, `plainusr_ultra`, `plainusr_large`   | 
-| [HASN](https://github.com/nathan66666/HASN)					| `hasn`					   |
-| [FlexNet](https://github.com/umzi2/FlexNet)					| `flexnet`, `metaflexnet`			   |
-| [CFSR](https://github.com/Aitical/CFSR)					| `cfsr`					   |
-| [Sebica](https://github.com/idiosyncracies/Sebica)				| `sebica`, `sebica_mini`			   |
-| [NinaSR](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)	| `ninasr`, `ninasr_b0`, `ninasr_b2`		   |
+| -										| -						   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):
@@ -216,6 +215,7 @@ pie
 
 Datasets made by the upscaling community. More info can be found in author's repository.
 
+- `DF2k-BHI`: a curated version of the classic DF2k dataset, made by [@Phhofm](https://github.com/Phhofm). Read more about it [here](https://huggingface.co/blog/Phips/bhi-filtering).
 - `4xNomosRealWeb Dataset`: realistically degraded LQ's for Nomos-v2 dataset (from [@Phhofm](https://github.com/Phhofm)).
 - `FaceUp`: Curated version of [FFHQ](https://github.com/NVlabs/ffhq-dataset)
 - `SSDIR`: Curated version of [LSDIR](https://data.vision.ee.ethz.ch/yawli/).
@@ -225,6 +225,7 @@ Datasets made by the upscaling community. More info can be found in author's rep
 
 | dataset                                                | download 												      |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| [@Phhofm](https://github.com/Phhofm)			 | [HuggingFace](https://huggingface.co/datasets/Phips/DF2K_BHI)					      |
 | [@Phhofm](https://github.com/Phhofm) 4xNomosRealWeb	 | [Release page](https://github.com/Phhofm/models/releases/tag/4xnomosrealweb_dataset)			      |
 | [@Phhofm](https://github.com/Phhofm) FaceUp            | [GDrive (4GB)](https://drive.google.com/file/d/1WFY0siR_ERVSnE2p7ouiCfV3wQizpAKr/view)                     |
 | [@Phhofm](https://github.com/Phhofm) SSDIR             | [Gdrive (4.5GB)](https://drive.google.com/file/d/1FA8Q-T3xZ6_KA7SHYgoa6idIS7xpdrl4/view)                   |

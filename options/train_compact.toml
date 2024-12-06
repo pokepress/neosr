@@ -2,9 +2,9 @@
 name = "train_compact"
 model_type = "image"
 scale = 4
-#use_amp = true
-#bfloat16 = true
-#fast_matmul = true
+use_amp = true
+bfloat16 = true
+fast_matmul = true
 #compile = true
 #manual_seed = 1024
 
@@ -42,7 +42,7 @@ val_freq = 1000
 type = "compact"
 
 [network_d]
-type = "ea2fpn"
+type = "metagan"
 
 [train]
 grad_clip = false
@@ -91,7 +91,7 @@ model = "vgg" # "resnet", "effnet", "inception"
 [train.gan_opt]
 type = "gan_loss"
 gan_type = "bce"
-loss_weight = 0.1
+loss_weight = 0.3
 
 #[train.msswd_opt]
 #type = "msswd_loss"

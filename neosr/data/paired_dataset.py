@@ -54,20 +54,22 @@ class paired(data.Dataset):
         super().__init__()
         self.opt = opt
         self.file_client: FileClient | None = None
-        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
-        # default to 'disk' if not specified
-        if io_backend_opt is None:
-            self.io_backend_opt: dict[str, str] = {"type": "disk"}
-        else:
-            self.io_backend_opt = io_backend_opt
-        # mean and std for normalizing the input images
         self.mean = opt.get("mean")
         self.std = opt.get("std")
         self.color = self.opt.get("color", None) != "y"
         self.gt_folder, self.lq_folder = opt["dataroot_gt"], opt["dataroot_lq"]
 
+        # sets flag for file_client.py
+        io_backend_opt: dict[str, str] | None = opt.get("io_backend")
+        if self.gt_folder.endswith("lmdb") and self.lq_folder.endswith("lmdb"):
+            self.io_backend_opt: dict[str, str] = {"type": "lmdb"}
+            lmdb = True
+        else:
+            self.io_backend_opt: dict[str, str] = {"type": "disk"}
+            lmdb = False
+
         # file client (lmdb io backend)
-        if self.io_backend_opt["type"] == "lmdb":
+        if lmdb:
             self.io_backend_opt["db_paths"] = [self.lq_folder, self.gt_folder]  # type: ignore[assignment]
             self.io_backend_opt["client_keys"] = ["lq", "gt"]  # type: ignore[assignment]
             self.paths: list[str] | list[dict[str, str]] = paired_paths_from_lmdb(
@@ -81,7 +83,6 @@ class paired(data.Dataset):
                 ["lq", "gt"],
                 self.opt["meta_info_file"],
             )
-
         else:
             # disk backend
             # it will scan the whole folder to get meta info

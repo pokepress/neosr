@@ -33,10 +33,9 @@ from neosr.utils import (
 from neosr.utils.options import copy_opt_file, parse_options
 
 # minimum supported python version
-if sys.version_info < (3, 12):  # noqa: UP036
-    msg = f"{tc.red}Python version >=3.12 is required.{tc.end}"
+if sys.version_info.major != 3 or sys.version_info.minor != 12:  # noqa: UP036
+    msg = f"{tc.red}Python version 3.12 is required.{tc.end}"
     raise ValueError(msg)
-
 
 def init_tb_loggers(opt: dict[str, Any]):
     # initialize wandb logger before tensorboard logger to allow proper sync
@@ -90,7 +89,7 @@ def create_train_val_dataloader(
                 / (dataset_opt["batch_size"] * accumulate * opt["world_size"])
             )
             total_iters = int(opt["logger"].get("total_iter", 1000000) * accumulate)
-            total_epochs: int = math.ceil(total_iters / (num_iter_per_epoch))
+            total_epochs: int = int(math.ceil(total_iters / num_iter_per_epoch))
             logger.info(
                 'Training informations:'
                 f'\n-------- Starting model: {opt["name"]}'
@@ -243,9 +242,41 @@ def train_pipeline(root_path: str) -> None:
     if train_loader is not None:
         prefetcher = CUDAPrefetcher(train_loader, opt)
 
-    if opt.get("use_amp", False):
+    # log AMP (automatic mixed precision)
+    if opt.get("use_amp", False) and opt.get("bfloat16", False):
+        logger.info("AMP enabled with BF16.")
+    elif opt.get("use_amp", False) and not opt.get("bfloat16", False):
         logger.info("AMP enabled.")
+    else:
+        logger.info("AMP disabled.")
 
+    # error if bf16 is enabled by not amp
+    if not opt.get("use_amp", False) and opt.get("bfloat16", False):
+        msg = f"{tc.red}bfloat16 option has no effect without use_amp.{tc.end}"
+        logger.error(msg)
+        sys.exit(1)
+
+    # detect GPU architecture
+    is_ampere = torch.cuda.get_device_capability()[0] >= 8
+    is_turing = torch.cuda.get_device_capability()[0] == 7
+    is_pascal = torch.cuda.get_device_capability()[0] <= 6
+
+    # detect Ampere and recommend bf16
+    if opt.get("use_amp", False) is False and is_ampere:
+        msg = f"{tc.light_yellow}Modern GPU detected. Consider enabling AMP with bfloat16.{tc.end}"
+        logger.warning(msg)
+
+    # detect Turing or older and error if bf16 is enabled
+    if opt.get("bfloat16", False) is True and is_turing:
+        msg = f"{tc.light_yellow}Turing GPU detected. Consider disabling bfloat16.{tc.end}"
+        logger.warning(msg)
+
+    # detect Pascal or older and warn about AMP
+    if opt.get("use_amp", False) is True and is_pascal:
+        msg = f"{tc.light_yellow}Pascal GPU doesn't have tensor cores. Consider disabling AMP.{tc.end}"
+        logger.warning(msg)
+
+    # log deterministic mode
     if opt["deterministic"]:
         logger.info("Deterministic mode enabled.")
 
