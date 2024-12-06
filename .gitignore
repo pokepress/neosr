@@ -1,6 +1,7 @@
-experiments/*
-options/tmp/
+.venv/
 __pycache__/
 .ruff_cache/
 .mypy_cache/
+experiments/*
+options/tmp/
 check.sh

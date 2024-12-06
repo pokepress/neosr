@@ -227,7 +227,7 @@ class EffNet(nn.Module):
 class fdl_loss(nn.Module):
     def __init__(
         self,
-        patch_size=5,
+        patch_size=4,
         stride=1,
         num_proj=24,
         model="vgg",

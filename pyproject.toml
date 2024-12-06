@@ -7,22 +7,24 @@ license = "Apache-2.0"
 readme = "readme.md"
 repository = "https://github.com/neosr-project/neosr"
 documentation = "https://github.com/neosr-project/neosr/wiki"
+#requires-python = ">=3.12,<3.13"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-einops = "^0.8"
-lmdb = "^1.5.1"
-numpy = "^2.1.2"
-opencv-python-headless = "^4.10"
-pywavelets = "^1.7.0"
-scipy = "^1.14.1"
+python = "^3.12,<3.13"
+setuptools = "^75.6.0"
 tqdm = "^4.66.5"
+numpy = "^2.1.2"
+scipy = "^1.14.1"
+opencv-python-headless = "^4.10"
+lmdb = "^1.5.1"
 tb-nightly = "^2.19.0a20241004"
 onnx = "^1.17.0"
 onnxruntime-gpu = "^1.19.2"
 onnxconverter-common = "^1.14.0"
 torch = {version = "^2.5.1+cu124", source = "pytorch_gpu"}
 torchvision = {version = "^0.20.1+cu124", source = "pytorch_gpu"}
+einops = "^0.8"
+pywavelets = "^1.7.0"
 
 [[tool.poetry.source]]
 name = "pytorch_gpu"
@@ -31,8 +33,36 @@ priority = "explicit"
 
 [tool.ruff]
 lint.select = ["ALL"]
-lint.ignore = ["D", "DOC", "COM812", "ISC001", "T201", "E501", "T201", "CPY", "TD002", "TD003", "COM812", "ISC001", "N8", "S101", "G004", "ERA001", "PLR", "C90", "E722", "B904", "FBT001", "FBT002", "SLF001", "S311", "FIX", "PLC0206", "ANN", "PGH003", "E741", "S403"]
 lint.fixable = ["ALL"]
+lint.ignore = [
+    "ANN",
+    "B904",
+    "C90",
+    "COM812",
+    "CPY",
+    "D",
+    "DOC",
+    "ERA001",
+    "E501",
+    "E722",
+    "E741",
+    "FIX",
+    "FBT001",
+    "FBT002",
+    "G004",
+    "ISC001",
+    "N8",
+    "PLR",
+    "PLC0206",
+    "PGH003",
+    "S101",
+    "S311",
+    "S403",
+    "SLF001",
+    "T201",
+    "TD002",
+    "TD003",
+]
 exclude = ["*_arch.py"]
 target-version = "py312"
 preview = true
