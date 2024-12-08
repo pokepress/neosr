@@ -311,7 +311,7 @@ class image(base):
             msg = f"{tc.red}Wavelet-Guided requires GAN.{tc.end}"
             logger.error(msg)
             sys.exit(1)
-        if self.net_d is not None:  # noqa: SIM102
+        if self.net_d is not None:
             if (
                 self.opt["network_d"].get("type") == "ea2fpn"
                 and self.patch_size == 48
@@ -321,6 +321,17 @@ class image(base):
                 {tc.red}
                 Discriminator ea2fpn does not work with patch_size 48 while doing 1x ratio.
                 Please increase or decrease patch_size.
+                {tc.end}
+                """
+                logger.error(msg)
+                sys.exit(1)
+            if (
+                self.opt["network_d"].get("type") == "metagan"
+                and self.patch_size % 32 != 0
+            ):
+                msg = f"""
+                {tc.red}
+                Discriminator metagan requires patch size to be divisible by 32.
                 {tc.end}
                 """
                 logger.error(msg)

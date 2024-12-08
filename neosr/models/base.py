@@ -11,13 +11,12 @@ from torch import Tensor, nn
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
-from neosr.optimizers import adamw_sf, adamw_win, adan, adan_sf
+from neosr.optimizers import adamw_sf, adamw_win, adan, adan_sf #, soap_sf 
 from neosr.utils import get_root_logger, tc
 from neosr.utils.dist_util import master_only
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
 
 class base:
     """Default model."""
@@ -166,6 +165,8 @@ class base:
             optimizer = adamw_sf(params, lr, **kwargs)
         elif optim_type in {"Adan_SF", "adan_sf"}:
             optimizer = adan_sf(params, lr, **kwargs)
+        #elif optim_type in {"soap_sf"}:
+        #    optimizer = soap_sf(params, lr, **kwargs)
         else:
             logger = get_root_logger()
             msg = f"{tc.red}Optimizer {optim_type} is not supported yet.{tc.end}"
