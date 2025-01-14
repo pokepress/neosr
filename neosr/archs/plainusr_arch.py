@@ -22,6 +22,34 @@ def pad_tensor(t, pattern):
     return t
 
 
+
+class ASR(nn.Module):
+    def __init__(self, n_feat):
+        super().__init__()
+        self.n_feat = n_feat
+        self.tensor = nn.Parameter(
+            0.1 * torch.ones((1, n_feat, 1, 1)), requires_grad=True
+        )
+        self.se = nn.Sequential(
+            Reduce("b c 1 1 -> b c", "mean"),
+            nn.Linear(n_feat, n_feat // 4, bias=False),
+            nn.SiLU(),
+            nn.Linear(n_feat // 4, n_feat, bias=False),
+            nn.Sigmoid(),
+            Rearrange("b c -> b c 1 1"),
+        )
+        self.init_weights()
+
+    def init_weights(self):
+        # to make sure the inital [0.5,0.5,...,0.5]
+        self.se[1].weight.data.fill_(1)
+        self.se[3].weight.data.fill_(1)
+
+    def forward(self, x):
+        attn = self.se(self.tensor)
+        return attn * x
+
+
 class MBConv(nn.Module):
     def __init__(self, n_feat, ratio=2):
         super().__init__()
@@ -111,35 +139,91 @@ class MBConv(nn.Module):
         del self._parameters["se"]
 
 
-
-class ASR(nn.Module):
+class PConv(nn.Module):
     def __init__(self, n_feat):
         super().__init__()
         self.n_feat = n_feat
-        self.tensor = nn.Parameter(
-            0.1 * torch.ones((1, n_feat, 1, 1)), requires_grad=True
-        )
-        self.se = nn.Sequential(
-            Reduce("b c 1 1 -> b c", "mean"),
-            nn.Linear(n_feat, n_feat // 4, bias=False),
-            nn.SiLU(),
-            nn.Linear(n_feat // 4, n_feat, bias=False),
-            nn.Sigmoid(),
-            Rearrange("b c -> b c 1 1"),
-        )
+        self.conv = nn.Conv2d(n_feat, 1, 1, 1, 0)
         self.init_weights()
 
+    def forward(self, x):
+        x1 = self.conv(x)
+        x2 = x[:, 1:].clone()
+        return torch.cat([x1, x2], dim=1)
+
     def init_weights(self):
-        # to make sure the inital [0.5,0.5,...,0.5]
-        self.se[1].weight.data.fill_(1)
-        self.se[3].weight.data.fill_(1)
+        self.conv.weight.data.fill_(1 / self.n_feat)
+        self.conv.bias.data.fill_(0)
+
+
+class SoftPooling2D(torch.nn.Module):
+    def __init__(self, kernel_size, stride=None, padding=0):
+        super().__init__()
+        self.avgpool = torch.nn.AvgPool2d(
+            kernel_size, stride, padding, count_include_pad=False
+        )
 
     def forward(self, x):
-        attn = self.se(self.tensor)
-        return attn * x
+        x_exp = torch.exp(x)
+        x_exp_pool = self.avgpool(x_exp)
+        x = self.avgpool(x_exp * x)
+        return x / x_exp_pool
+
+
+class LocalAttention(nn.Module):
+    """attention based on local importance"""
+
+    def __init__(self, channels, f=16, speed=False):
+        super().__init__()
+        self.speed = speed
+
+        if self.speed:
+            self.body = nn.Sequential(
+                # sample importance
+                nn.Conv2d(channels, channels, 3, 1, 1),
+                # to heatmap
+                nn.Sigmoid(),
+            )
+        else:
+            self.body = nn.Sequential(
+                # sample importance
+                nn.Conv2d(channels, f, 1),
+                SoftPooling2D(7, stride=3),
+                nn.Conv2d(f, f, kernel_size=3, stride=2, padding=1),
+                nn.Conv2d(f, channels, 3, padding=1),
+                # to heatmap
+                nn.Sigmoid(),
+            )
+
+        self.gate = nn.Sequential(nn.Sigmoid())
+
+    def forward(self, x):
+        """forward"""
+        # interpolate the heat map
+        g = self.gate(x[:, :1].clone())
+        if self.speed:
+            w = self.body(x)
+        else:
+            w = F.interpolate(
+                self.body(x),
+                (x.size(2), x.size(3)),
+                mode="bilinear",
+                align_corners=False,
+            )
+        return x * w * g
 
 
 class Block(nn.Module):
+
+    def _conv_or_mb(self, n_feat):
+        if self.training:
+            return MBConv(n_feat)
+        return nn.Conv2d(n_feat, n_feat, 3, 1, 1)
+
+    def _conv_or_pconv(self, n_feat):
+        if self.training:
+            return PConv(n_feat)
+        return nn.Conv2d(n_feat, n_feat, 3, 1, 1)
     def __init__(self, n_feat, version, f=16):
         super().__init__()
         self.f = f
@@ -180,16 +264,6 @@ class Block(nn.Module):
 
     def forward(self, x):
         return self.body(x)
-
-    def _conv_or_mb(self, n_feat):
-        if self.training:
-            return MBConv(n_feat)
-        return nn.Conv2d(n_feat, n_feat, 3, 1, 1)
-
-    def _conv_or_pconv(self, n_feat):
-        if self.training:
-            return PConv(n_feat)
-        return nn.Conv2d(n_feat, n_feat, 3, 1, 1)
 
     def switch_to_deploy(self, prune):
         n_feat, _, _, _ = self.body[0].conv.weight.data.shape
@@ -314,80 +388,6 @@ class Block(nn.Module):
 
         for para in self.parameters():
             para.detach_()
-
-
-class PConv(nn.Module):
-    def __init__(self, n_feat):
-        super().__init__()
-        self.n_feat = n_feat
-        self.conv = nn.Conv2d(n_feat, 1, 1, 1, 0)
-        self.init_weights()
-
-    def forward(self, x):
-        x1 = self.conv(x)
-        x2 = x[:, 1:].clone()
-        return torch.cat([x1, x2], dim=1)
-
-    def init_weights(self):
-        self.conv.weight.data.fill_(1 / self.n_feat)
-        self.conv.bias.data.fill_(0)
-
-
-class SoftPooling2D(torch.nn.Module):
-    def __init__(self, kernel_size, stride=None, padding=0):
-        super().__init__()
-        self.avgpool = torch.nn.AvgPool2d(
-            kernel_size, stride, padding, count_include_pad=False
-        )
-
-    def forward(self, x):
-        x_exp = torch.exp(x)
-        x_exp_pool = self.avgpool(x_exp)
-        x = self.avgpool(x_exp * x)
-        return x / x_exp_pool
-
-
-class LocalAttention(nn.Module):
-    """attention based on local importance"""
-
-    def __init__(self, channels, f=16, speed=False):
-        super().__init__()
-        self.speed = speed
-
-        if self.speed:
-            self.body = nn.Sequential(
-                # sample importance
-                nn.Conv2d(channels, channels, 3, 1, 1),
-                # to heatmap
-                nn.Sigmoid(),
-            )
-        else:
-            self.body = nn.Sequential(
-                # sample importance
-                nn.Conv2d(channels, f, 1),
-                SoftPooling2D(7, stride=3),
-                nn.Conv2d(f, f, kernel_size=3, stride=2, padding=1),
-                nn.Conv2d(f, channels, 3, padding=1),
-                # to heatmap
-                nn.Sigmoid(),
-            )
-
-        self.gate = nn.Sequential(nn.Sigmoid())
-
-    def forward(self, x):
-        """forward"""
-        # interpolate the heat map
-        g = self.gate(x[:, :1].clone())
-        if self.speed:
-            w = self.body(x)
-        else:
-            w = F.interpolate(
-                self.body(x),
-                (x.size(2), x.size(3)),
-                mode="bilinear",
-                align_corners=False,
-            )
-        return x * w * g
 
 
 @ARCH_REGISTRY.register()

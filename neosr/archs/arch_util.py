@@ -33,6 +33,15 @@ class DySample(nn.Module):
     https://github.com/tiny-smart/dysample
     """
 
+    def _init_pos(self) -> Tensor:
+        h = torch.arange((-self.scale + 1) / 2, (self.scale - 1) / 2 + 1) / self.scale
+        return (
+            torch.stack(torch.meshgrid([h, h], indexing="ij"))
+            .transpose(1, 2)
+            .repeat(1, self.groups, 1)
+            .reshape(1, -1, 1, 1)
+        )
+
     def __init__(
         self,
         in_channels: int,
@@ -64,15 +73,6 @@ class DySample(nn.Module):
             nn.init.constant_(self.scope.weight, val=0)
 
         self.register_buffer("init_pos", self._init_pos())
-
-    def _init_pos(self) -> Tensor:
-        h = torch.arange((-self.scale + 1) / 2, (self.scale - 1) / 2 + 1) / self.scale
-        return (
-            torch.stack(torch.meshgrid([h, h], indexing="ij"))
-            .transpose(1, 2)
-            .repeat(1, self.groups, 1)
-            .reshape(1, -1, 1, 1)
-        )
 
     def forward(self, x: Tensor) -> Tensor:
         offset = self.offset(x) * self.scope(x).sigmoid() * 0.5 + self.init_pos

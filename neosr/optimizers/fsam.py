@@ -33,6 +33,22 @@ class fsam(Optimizer):
         self.sigma = sigma
         self.lmbda = lmbda
 
+    def _grad_norm(self):
+        shared_device = self.param_groups[0]["params"][
+            0
+        ].device  # put everything on the same device, in case of model parallelism
+        return torch.linalg.vector_norm(
+            torch.stack([
+                ((torch.abs(p) if group["adaptive"] else 1.0) * p.grad)
+                .norm(p=2)
+                .to(shared_device)
+                for group in self.param_groups
+                for p in group["params"]
+                if p.grad is not None
+            ]),
+            ord=2,
+        )
+
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False) -> None:
         for group in self.param_groups:
@@ -93,22 +109,6 @@ class fsam(Optimizer):
         self.first_step(zero_grad=True)
         closure(current_iter)
         self.second_step()
-
-    def _grad_norm(self):
-        shared_device = self.param_groups[0]["params"][
-            0
-        ].device  # put everything on the same device, in case of model parallelism
-        return torch.linalg.vector_norm(
-            torch.stack([
-                ((torch.abs(p) if group["adaptive"] else 1.0) * p.grad)
-                .norm(p=2)
-                .to(shared_device)
-                for group in self.param_groups
-                for p in group["params"]
-                if p.grad is not None
-            ]),
-            ord=2,
-        )
 
     def load_state_dict(self, state_dict: dict[Any, Any]) -> None:
         super().load_state_dict(state_dict)

@@ -77,11 +77,6 @@ class adamw_win(Optimizer):
 
         super().__init__(params, defaults)
 
-    def __setstate__(self, state: dict[str, bool]):
-        super().__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault("amsgrad", False)
-
     @torch.no_grad()
     def step(self, closure: Callable[..., Any] | None = None) -> float:  # type: ignore[reportIncompatibleMethodOverride,override]
         """Performs a single optimization step.
@@ -224,3 +219,8 @@ class adamw_win(Optimizer):
                     p.addcdiv_(exp_avg, denom, value=-step_size)
 
         return loss
+
+    def __setstate__(self, state: dict[str, bool]):
+        super().__setstate__(state)
+        for group in self.param_groups:
+            group.setdefault("amsgrad", False)

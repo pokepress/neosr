@@ -90,6 +90,9 @@ class paired(data.Dataset):
                 [self.lq_folder, self.gt_folder], ["lq", "gt"]
             )
 
+    def __len__(self) -> int:
+        return len(self.paths)
+
     def __getitem__(self, index: int) -> dict[str, str | Tensor]:
         logger = get_root_logger()
         if self.file_client is None:
@@ -166,6 +169,3 @@ class paired(data.Dataset):
             normalize(img_gt, self.mean, self.std, inplace=True)  # type: ignore[reportArgumentType]
 
         return {"lq": img_lq, "gt": img_gt, "lq_path": lq_path, "gt_path": gt_path}
-
-    def __len__(self) -> int:
-        return len(self.paths)

@@ -122,6 +122,9 @@ class otf(data.Dataset):
             self.pulse_tensor = torch.zeros(21, 21, dtype=torch.float32)
         self.pulse_tensor[10, 10] = 1
 
+    def __len__(self) -> int:
+        return len(self.paths)
+
     def __getitem__(self, index: int) -> dict[str, str | Tensor]:
         logger = get_root_logger()
         if self.file_client is None:
@@ -261,6 +264,3 @@ class otf(data.Dataset):
             "sinc_kernel": sinc_kernel,
             "gt_path": gt_path,
         }
-
-    def __len__(self) -> int:
-        return len(self.paths)

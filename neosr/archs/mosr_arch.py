@@ -28,16 +28,16 @@ class GPS(nn.Module):
         )
         self.ps = nn.PixelShuffle(scale)
 
-    def forward(self, x):
-        rgb = self._geo_ensemble(x)
-        rgb = self.ps(rgb)
-        return rgb
-
     def _geo_ensemble(self, x):
         x = self.in_to_k(x)
         x = x.reshape(x.shape[0], 8, -1, x.shape[-2], x.shape[-1])
         x = x.mean(dim=1)
         return x
+
+    def forward(self, x):
+        rgb = self._geo_ensemble(x)
+        rgb = self.ps(rgb)
+        return rgb
 
 
 class LayerNorm(nn.Module):
@@ -88,6 +88,13 @@ class GatedCNNBlock(nn.Module):
     https://github.com/yuweihao/MambaOut/blob/main/models/mambaout.py#L119
     """
 
+    @staticmethod
+    def _init_weights(m):
+        if isinstance(m, nn.Conv2d | nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
     def __init__(
         self,
         dim: int,
@@ -120,13 +127,6 @@ class GatedCNNBlock(nn.Module):
             else nn.Identity()
         )
         self.apply(self._init_weights)
-
-    @staticmethod
-    def _init_weights(m):
-        if isinstance(m, nn.Conv2d | nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         shortcut = x

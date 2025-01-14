@@ -234,156 +234,6 @@ class WindowAttention(nn.Module):
         return f"dim={self.dim}, window_size={self.window_size}, num_heads={self.num_heads}"
 
 
-class RDG(nn.Module):
-    def __init__(
-        self,
-        dim,
-        input_resolution,
-        depth,
-        num_heads,
-        window_size,
-        shift_size,
-        mlp_ratio,
-        qkv_bias,
-        qk_scale,
-        drop,
-        attn_drop,
-        drop_path,
-        norm_layer,
-        gc,
-        patch_size,
-        img_size,
-    ):
-        super(RDG, self).__init__()
-
-        self.swin1 = SwinTransformerBlock(
-            dim=dim,
-            input_resolution=input_resolution,
-            num_heads=num_heads,
-            window_size=window_size,
-            shift_size=0,  # For first block
-            mlp_ratio=mlp_ratio,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop,
-            attn_drop=attn_drop,
-            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
-            norm_layer=norm_layer,
-        )
-        self.adjust1 = nn.Conv2d(dim, gc, 1)
-
-        self.swin2 = SwinTransformerBlock(
-            dim + gc,
-            input_resolution=input_resolution,
-            num_heads=num_heads - ((dim + gc) % num_heads),
-            window_size=window_size,
-            shift_size=window_size // 2,  # For first block
-            mlp_ratio=mlp_ratio,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop,
-            attn_drop=attn_drop,
-            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
-            norm_layer=norm_layer,
-        )
-        self.adjust2 = nn.Conv2d(dim + gc, gc, 1)
-
-        self.swin3 = SwinTransformerBlock(
-            dim + 2 * gc,
-            input_resolution=input_resolution,
-            num_heads=num_heads - ((dim + 2 * gc) % num_heads),
-            window_size=window_size,
-            shift_size=0,  # For first block
-            mlp_ratio=mlp_ratio,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop,
-            attn_drop=attn_drop,
-            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
-            norm_layer=norm_layer,
-        )
-        self.adjust3 = nn.Conv2d(dim + gc * 2, gc, 1)
-
-        self.swin4 = SwinTransformerBlock(
-            dim + 3 * gc,
-            input_resolution=input_resolution,
-            num_heads=num_heads - ((dim + 3 * gc) % num_heads),
-            window_size=window_size,
-            shift_size=window_size // 2,  # For first block
-            mlp_ratio=1,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop,
-            attn_drop=attn_drop,
-            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
-            norm_layer=norm_layer,
-        )
-        self.adjust4 = nn.Conv2d(dim + gc * 3, gc, 1)
-
-        self.swin5 = SwinTransformerBlock(
-            dim + 4 * gc,
-            input_resolution=input_resolution,
-            num_heads=num_heads - ((dim + 4 * gc) % num_heads),
-            window_size=window_size,
-            shift_size=0,  # For first block
-            mlp_ratio=1,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop,
-            attn_drop=attn_drop,
-            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
-            norm_layer=norm_layer,
-        )
-        self.adjust5 = nn.Conv2d(dim + gc * 4, dim, 1)
-
-        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
-
-        self.pe = PatchEmbed(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=0,
-            embed_dim=dim,
-            norm_layer=None,
-        )
-
-        self.pue = PatchUnEmbed(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=0,
-            embed_dim=dim,
-            norm_layer=None,
-        )
-
-    def forward(self, x, xsize):
-        x1 = self.pe(self.lrelu(self.adjust1(self.pue(self.swin1(x, xsize), xsize))))
-        x2 = self.pe(
-            self.lrelu(
-                self.adjust2(self.pue(self.swin2(torch.cat((x, x1), -1), xsize), xsize))
-            )
-        )
-        x3 = self.pe(
-            self.lrelu(
-                self.adjust3(
-                    self.pue(self.swin3(torch.cat((x, x1, x2), -1), xsize), xsize)
-                )
-            )
-        )
-        x4 = self.pe(
-            self.lrelu(
-                self.adjust4(
-                    self.pue(self.swin4(torch.cat((x, x1, x2, x3), -1), xsize), xsize)
-                )
-            )
-        )
-        x5 = self.pe(
-            self.adjust5(
-                self.pue(self.swin5(torch.cat((x, x1, x2, x3, x4), -1), xsize), xsize)
-            )
-        )
-
-        return x5 * 0.2 + x
-
-
 class SwinTransformerBlock(nn.Module):
     r"""Swin Transformer Block.
 
@@ -556,6 +406,238 @@ class SwinTransformerBlock(nn.Module):
         )
 
 
+class PatchEmbed(nn.Module):
+    r"""Image to Patch Embedding
+
+    Args:
+    ----
+        img_size (int): Image size.  Default: 224.
+        patch_size (int): Patch token size. Default: 4.
+        in_chans (int): Number of input image channels. Default: 3.
+        embed_dim (int): Number of linear projection output channels. Default: 96.
+        norm_layer (nn.Module, optional): Normalization layer. Default: None
+
+    """
+
+    def __init__(
+        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
+    ):
+        super().__init__()
+        img_size = to_2tuple(img_size)
+        patch_size = to_2tuple(patch_size)
+        patches_resolution = [
+            img_size[0] // patch_size[0],
+            img_size[1] // patch_size[1],
+        ]
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.patches_resolution = patches_resolution
+        self.num_patches = patches_resolution[0] * patches_resolution[1]
+
+        self.in_chans = in_chans
+        self.embed_dim = embed_dim
+
+        if norm_layer is not None:
+            self.norm = norm_layer(embed_dim)
+        else:
+            self.norm = None
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)  # structured as [B, num_patches, C]
+        if self.norm is not None:
+            x = self.norm(x)  # 归一化
+        return x
+
+
+class PatchUnEmbed(nn.Module):
+    r"""Image to Patch Unembedding
+
+    Args:
+    ----
+        img_size (int): image size, default 224*224.
+        patch_size (int): Patch token sizd, default 4*4.
+        in_chans (int): num image channels, default 3.
+        embed_dim (int): num channels for linear projection output, default 96
+        norm_layer (nn.Module, optional): normalization layer, default None.
+
+    """
+
+    def __init__(
+        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
+    ):
+        super().__init__()
+        img_size = to_2tuple(img_size)  # 图像的大小，默认为 224*224
+        patch_size = to_2tuple(patch_size)  # Patch token 的大小，默认为 4*4
+        patches_resolution = [
+            img_size[0] // patch_size[0],
+            img_size[1] // patch_size[1],
+        ]  # patch 的分辨率
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.patches_resolution = patches_resolution
+        self.num_patches = patches_resolution[0] * patches_resolution[1]
+
+        self.in_chans = in_chans
+        self.embed_dim = embed_dim
+
+    def forward(self, x, x_size):
+        B, HW, C = x.shape
+        x = x.transpose(1, 2).view(
+            B, -1, x_size[0], x_size[1]
+        )  # structured as [B, Ph*Pw, C]
+        return x
+
+
+class RDG(nn.Module):
+    def __init__(
+        self,
+        dim,
+        input_resolution,
+        depth,
+        num_heads,
+        window_size,
+        shift_size,
+        mlp_ratio,
+        qkv_bias,
+        qk_scale,
+        drop,
+        attn_drop,
+        drop_path,
+        norm_layer,
+        gc,
+        patch_size,
+        img_size,
+    ):
+        super(RDG, self).__init__()
+
+        self.swin1 = SwinTransformerBlock(
+            dim=dim,
+            input_resolution=input_resolution,
+            num_heads=num_heads,
+            window_size=window_size,
+            shift_size=0,  # For first block
+            mlp_ratio=mlp_ratio,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            drop=drop,
+            attn_drop=attn_drop,
+            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
+            norm_layer=norm_layer,
+        )
+        self.adjust1 = nn.Conv2d(dim, gc, 1)
+
+        self.swin2 = SwinTransformerBlock(
+            dim + gc,
+            input_resolution=input_resolution,
+            num_heads=num_heads - ((dim + gc) % num_heads),
+            window_size=window_size,
+            shift_size=window_size // 2,  # For first block
+            mlp_ratio=mlp_ratio,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            drop=drop,
+            attn_drop=attn_drop,
+            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
+            norm_layer=norm_layer,
+        )
+        self.adjust2 = nn.Conv2d(dim + gc, gc, 1)
+
+        self.swin3 = SwinTransformerBlock(
+            dim + 2 * gc,
+            input_resolution=input_resolution,
+            num_heads=num_heads - ((dim + 2 * gc) % num_heads),
+            window_size=window_size,
+            shift_size=0,  # For first block
+            mlp_ratio=mlp_ratio,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            drop=drop,
+            attn_drop=attn_drop,
+            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
+            norm_layer=norm_layer,
+        )
+        self.adjust3 = nn.Conv2d(dim + gc * 2, gc, 1)
+
+        self.swin4 = SwinTransformerBlock(
+            dim + 3 * gc,
+            input_resolution=input_resolution,
+            num_heads=num_heads - ((dim + 3 * gc) % num_heads),
+            window_size=window_size,
+            shift_size=window_size // 2,  # For first block
+            mlp_ratio=1,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            drop=drop,
+            attn_drop=attn_drop,
+            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
+            norm_layer=norm_layer,
+        )
+        self.adjust4 = nn.Conv2d(dim + gc * 3, gc, 1)
+
+        self.swin5 = SwinTransformerBlock(
+            dim + 4 * gc,
+            input_resolution=input_resolution,
+            num_heads=num_heads - ((dim + 4 * gc) % num_heads),
+            window_size=window_size,
+            shift_size=0,  # For first block
+            mlp_ratio=1,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            drop=drop,
+            attn_drop=attn_drop,
+            drop_path=drop_path[0] if isinstance(drop_path, list) else drop_path,
+            norm_layer=norm_layer,
+        )
+        self.adjust5 = nn.Conv2d(dim + gc * 4, dim, 1)
+
+        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
+        self.pe = PatchEmbed(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_chans=0,
+            embed_dim=dim,
+            norm_layer=None,
+        )
+
+        self.pue = PatchUnEmbed(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_chans=0,
+            embed_dim=dim,
+            norm_layer=None,
+        )
+
+    def forward(self, x, xsize):
+        x1 = self.pe(self.lrelu(self.adjust1(self.pue(self.swin1(x, xsize), xsize))))
+        x2 = self.pe(
+            self.lrelu(
+                self.adjust2(self.pue(self.swin2(torch.cat((x, x1), -1), xsize), xsize))
+            )
+        )
+        x3 = self.pe(
+            self.lrelu(
+                self.adjust3(
+                    self.pue(self.swin3(torch.cat((x, x1, x2), -1), xsize), xsize)
+                )
+            )
+        )
+        x4 = self.pe(
+            self.lrelu(
+                self.adjust4(
+                    self.pue(self.swin4(torch.cat((x, x1, x2, x3), -1), xsize), xsize)
+                )
+            )
+        )
+        x5 = self.pe(
+            self.adjust5(
+                self.pue(self.swin5(torch.cat((x, x1, x2, x3, x4), -1), xsize), xsize)
+            )
+        )
+
+        return x5 * 0.2 + x
+
+
 class PatchMerging(nn.Module):
     r"""Patch Merging Layer.
 
@@ -639,88 +721,6 @@ class PatchMerging(nn.Module):
         return x
 
 
-class PatchEmbed(nn.Module):
-    r"""Image to Patch Embedding
-
-    Args:
-    ----
-        img_size (int): Image size.  Default: 224.
-        patch_size (int): Patch token size. Default: 4.
-        in_chans (int): Number of input image channels. Default: 3.
-        embed_dim (int): Number of linear projection output channels. Default: 96.
-        norm_layer (nn.Module, optional): Normalization layer. Default: None
-
-    """
-
-    def __init__(
-        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
-    ):
-        super().__init__()
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
-        patches_resolution = [
-            img_size[0] // patch_size[0],
-            img_size[1] // patch_size[1],
-        ]
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
-
-        self.in_chans = in_chans
-        self.embed_dim = embed_dim
-
-        if norm_layer is not None:
-            self.norm = norm_layer(embed_dim)
-        else:
-            self.norm = None
-
-    def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)  # structured as [B, num_patches, C]
-        if self.norm is not None:
-            x = self.norm(x)  # 归一化
-        return x
-
-
-class PatchUnEmbed(nn.Module):
-    r"""Image to Patch Unembedding
-
-    Args:
-    ----
-        img_size (int): image size, default 224*224.
-        patch_size (int): Patch token sizd, default 4*4.
-        in_chans (int): num image channels, default 3.
-        embed_dim (int): num channels for linear projection output, default 96
-        norm_layer (nn.Module, optional): normalization layer, default None.
-
-    """
-
-    def __init__(
-        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
-    ):
-        super().__init__()
-        img_size = to_2tuple(img_size)  # 图像的大小，默认为 224*224
-        patch_size = to_2tuple(patch_size)  # Patch token 的大小，默认为 4*4
-        patches_resolution = [
-            img_size[0] // patch_size[0],
-            img_size[1] // patch_size[1],
-        ]  # patch 的分辨率
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
-
-        self.in_chans = in_chans
-        self.embed_dim = embed_dim
-
-    def forward(self, x, x_size):
-        B, HW, C = x.shape
-        x = x.transpose(1, 2).view(
-            B, -1, x_size[0], x_size[1]
-        )  # structured as [B, Ph*Pw, C]
-        return x
-
-
 class Upsample(nn.Sequential):
     """Upsample module.
 
@@ -749,6 +749,15 @@ class Upsample(nn.Sequential):
 
 @ARCH_REGISTRY.register()
 class drct(nn.Module):
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
     def __init__(
         self,
         img_size=64,
@@ -883,15 +892,6 @@ class drct(nn.Module):
             self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm):
-            nn.init.constant_(m.bias, 0)
-            nn.init.constant_(m.weight, 1.0)
 
     @torch.jit.ignore
     def no_weight_decay(self):

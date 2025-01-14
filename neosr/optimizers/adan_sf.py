@@ -7,6 +7,75 @@ from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
 
+def _multi_tensor_adan(
+    params: list[Tensor],
+    grads: list[Tensor],
+    exp_avgs: list[Tensor],
+    exp_avg_sqs: list[Tensor],
+    exp_avg_diffs: list[Tensor],
+    neg_pre_grads: list[Tensor],
+    *,
+    beta1: float,
+    beta2: float,
+    beta3: float,
+    bias_correction1: float,
+    bias_correction2: float,
+    bias_correction3_sqrt: float,
+    lr: float,
+    ckp1: float,
+    z: list[Tensor],
+    weight_decay: float,
+    eps: float,
+    schedule_free: bool,
+    clip_global_grad_norm: Tensor,
+) -> None:
+    if len(params) == 0:
+        return
+
+    torch._foreach_mul_(grads, clip_global_grad_norm)
+
+    # for memory saving, we use `neg_pre_grads`
+    # to get some temp variable in a inplace way
+    torch._foreach_add_(neg_pre_grads, grads)
+
+    torch._foreach_mul_(exp_avgs, beta1)
+    torch._foreach_add_(exp_avgs, grads, alpha=1 - beta1)  # m_t
+
+    torch._foreach_mul_(exp_avg_diffs, beta2)
+    torch._foreach_add_(exp_avg_diffs, neg_pre_grads, alpha=1 - beta2)  # diff_t
+
+    torch._foreach_mul_(neg_pre_grads, beta2)
+    torch._foreach_add_(neg_pre_grads, grads)
+    torch._foreach_mul_(exp_avg_sqs, beta3)
+    torch._foreach_addcmul_(
+        exp_avg_sqs, neg_pre_grads, neg_pre_grads, value=1 - beta3
+    )  # n_t
+
+    denom = torch._foreach_sqrt(exp_avg_sqs)
+    torch._foreach_div_(denom, bias_correction3_sqrt)
+    torch._foreach_add_(denom, eps)
+
+    torch._foreach_mul_(params, 1 - lr * weight_decay)
+
+    if schedule_free:
+        step_size_diff = lr * (beta2 / bias_correction2 * (1 - ckp1))
+        step_size = lr * (bias_correction1 * (1 - ckp1))
+        # in-place
+        torch._foreach_lerp_(params, z, weight=ckp1)
+        torch._foreach_addcdiv_(params, exp_avgs, denom, value=-step_size)
+        torch._foreach_addcdiv_(params, exp_avg_diffs, denom, value=-step_size_diff)
+        # z step
+        torch._foreach_sub_(z, grads, alpha=lr)
+    else:
+        step_size_diff = lr * beta2 / bias_correction2
+        step_size = lr / bias_correction1
+        torch._foreach_addcdiv_(params, exp_avgs, denom, value=-step_size)
+        torch._foreach_addcdiv_(params, exp_avg_diffs, denom, value=-step_size_diff)
+
+    torch._foreach_zero_(neg_pre_grads)
+    torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
+
+
 class adan_sf(Optimizer):
     """Unofficial adaptation of Schedule-Free to the Adan optimizer:
         https://arxiv.org/abs/2405.15682
@@ -87,11 +156,6 @@ class adan_sf(Optimizer):
             "schedule_free": schedule_free,
         }
         super().__init__(params, defaults)
-
-    def __setstate__(self, state: dict[str, bool]) -> None:
-        super().__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault("schedule_free", True)
 
     @torch.no_grad()
     def restart_opt(self) -> None:
@@ -260,71 +324,7 @@ class adan_sf(Optimizer):
 
         return loss
 
-
-def _multi_tensor_adan(
-    params: list[Tensor],
-    grads: list[Tensor],
-    exp_avgs: list[Tensor],
-    exp_avg_sqs: list[Tensor],
-    exp_avg_diffs: list[Tensor],
-    neg_pre_grads: list[Tensor],
-    *,
-    beta1: float,
-    beta2: float,
-    beta3: float,
-    bias_correction1: float,
-    bias_correction2: float,
-    bias_correction3_sqrt: float,
-    lr: float,
-    ckp1: float,
-    z: list[Tensor],
-    weight_decay: float,
-    eps: float,
-    schedule_free: bool,
-    clip_global_grad_norm: Tensor,
-) -> None:
-    if len(params) == 0:
-        return
-
-    torch._foreach_mul_(grads, clip_global_grad_norm)
-
-    # for memory saving, we use `neg_pre_grads`
-    # to get some temp variable in a inplace way
-    torch._foreach_add_(neg_pre_grads, grads)
-
-    torch._foreach_mul_(exp_avgs, beta1)
-    torch._foreach_add_(exp_avgs, grads, alpha=1 - beta1)  # m_t
-
-    torch._foreach_mul_(exp_avg_diffs, beta2)
-    torch._foreach_add_(exp_avg_diffs, neg_pre_grads, alpha=1 - beta2)  # diff_t
-
-    torch._foreach_mul_(neg_pre_grads, beta2)
-    torch._foreach_add_(neg_pre_grads, grads)
-    torch._foreach_mul_(exp_avg_sqs, beta3)
-    torch._foreach_addcmul_(
-        exp_avg_sqs, neg_pre_grads, neg_pre_grads, value=1 - beta3
-    )  # n_t
-
-    denom = torch._foreach_sqrt(exp_avg_sqs)
-    torch._foreach_div_(denom, bias_correction3_sqrt)
-    torch._foreach_add_(denom, eps)
-
-    torch._foreach_mul_(params, 1 - lr * weight_decay)
-
-    if schedule_free:
-        step_size_diff = lr * (beta2 / bias_correction2 * (1 - ckp1))
-        step_size = lr * (bias_correction1 * (1 - ckp1))
-        # in-place
-        torch._foreach_lerp_(params, z, weight=ckp1)
-        torch._foreach_addcdiv_(params, exp_avgs, denom, value=-step_size)
-        torch._foreach_addcdiv_(params, exp_avg_diffs, denom, value=-step_size_diff)
-        # z step
-        torch._foreach_sub_(z, grads, alpha=lr)
-    else:
-        step_size_diff = lr * beta2 / bias_correction2
-        step_size = lr / bias_correction1
-        torch._foreach_addcdiv_(params, exp_avgs, denom, value=-step_size)
-        torch._foreach_addcdiv_(params, exp_avg_diffs, denom, value=-step_size_diff)
-
-    torch._foreach_zero_(neg_pre_grads)
-    torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
+    def __setstate__(self, state: dict[str, bool]) -> None:
+        super().__setstate__(state)
+        for group in self.param_groups:
+            group.setdefault("schedule_free", True)

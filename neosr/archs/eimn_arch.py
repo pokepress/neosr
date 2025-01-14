@@ -45,35 +45,6 @@ class LayerNorm(nn.Module):
         return None
 
 
-class SADFFM(nn.Module):
-    def __init__(
-        self, dim: int, expand_ratio: float, bias: bool = True, drop: float = 0.0
-    ):
-        super().__init__()
-        hidden_dims = int(dim * expand_ratio)
-        self.linear_in = nn.Conv2d(dim, hidden_dims * 2, kernel_size=1, bias=bias)
-        self.SAL = nn.Conv2d(
-            hidden_dims * 2,
-            hidden_dims * 2,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            groups=hidden_dims * 2,
-            bias=bias,
-        )
-        self.linear_out = nn.Conv2d(hidden_dims, dim, kernel_size=1, bias=bias)
-        self.DFFM = DFFM(dim)
-        self.drop = nn.Dropout(drop)
-
-    def forward(self, x):
-        x = self.linear_in(x)
-        x1, x2 = self.SAL(x).chunk(2, dim=1)
-        x = F.gelu(x1) * x2
-        x = self.linear_out(x)
-        x = self.DFFM(x)
-        return self.drop(x)
-
-
 class DFFM(nn.Module):
     def __init__(
         self,
@@ -108,6 +79,35 @@ class DFFM(nn.Module):
         )
         attn = c_attn * s_attn
         return identity * attn
+
+
+class SADFFM(nn.Module):
+    def __init__(
+        self, dim: int, expand_ratio: float, bias: bool = True, drop: float = 0.0
+    ):
+        super().__init__()
+        hidden_dims = int(dim * expand_ratio)
+        self.linear_in = nn.Conv2d(dim, hidden_dims * 2, kernel_size=1, bias=bias)
+        self.SAL = nn.Conv2d(
+            hidden_dims * 2,
+            hidden_dims * 2,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=hidden_dims * 2,
+            bias=bias,
+        )
+        self.linear_out = nn.Conv2d(hidden_dims, dim, kernel_size=1, bias=bias)
+        self.DFFM = DFFM(dim)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x):
+        x = self.linear_in(x)
+        x1, x2 = self.SAL(x).chunk(2, dim=1)
+        x = F.gelu(x1) * x2
+        x = self.linear_out(x)
+        x = self.DFFM(x)
+        return self.drop(x)
 
 
 class MLP(nn.Module):

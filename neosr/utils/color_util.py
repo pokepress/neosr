@@ -4,6 +4,71 @@ from numpy.typing import DTypeLike
 from torch import Tensor
 
 
+def _convert_input_type_range(img: np.ndarray) -> np.ndarray:
+    """Convert the type and range of the input image.
+
+    It converts the input image to np.float32 type and range of [0, 1].
+
+    Args:
+    ----
+        img (ndarray): The input image.
+
+    Returns:
+    -------
+        (ndarray): The converted image with type of float32 and range of
+            [0, 1].
+
+    """
+    img_type = img.dtype
+    img = img.astype(np.float32)
+    if img_type == "float32" or img_type == "float16":
+        pass
+    elif img_type == "uint8":
+        img /= 255.0
+    else:
+        msg = f"The img type should be np.float32, np.float16 or np.uint8, but got {img_type}"
+        raise TypeError(msg)
+    return img
+
+
+def _convert_output_type_range(img: np.ndarray, dst_type: DTypeLike) -> np.ndarray:
+    """Convert the type and range of the image according to dst_type.
+
+    It converts the image to desired type and range. If `dst_type` is uint8,
+    images will be converted to np.uint8 type with range [0, 255]. If
+    `dst_type` is float32, float16, it converts the image to
+    those types with range [0, 1].
+
+    Args:
+    ----
+        img (ndarray): The image to be converted with np.float32 type and
+            range [0, 255].
+        dst_type (type): If dst_type is uint8, it converts the image to np.uint8
+            type with range [0, 255]. If dst_type is float32, it converts the
+            image to np.float32 type with range [0, 1].
+
+    Returns:
+    -------
+        (ndarray): The converted image with desired type and range.
+
+    """
+    if str(dst_type) not in {
+        "np.uint8",
+        "np.float32",
+        "np.float16",
+        "float32",
+        "float16",
+        "uint8",
+    }:
+        msg = f"The dst_type should be np.float32, np.float16 or np.uint8, but got {dst_type}"
+        raise TypeError(msg)
+    if dst_type == np.uint8:
+        img = img.round()
+    else:
+        img /= 255.0
+    return img.astype(dst_type)
+
+
 def rgb2ycbcr(img: np.ndarray, y_only: bool = False) -> np.ndarray:
     """Convert a RGB image to YCbCr image.
 
@@ -158,71 +223,6 @@ def ycbcr2bgr(img: np.ndarray) -> np.ndarray:
         ],
     ) * 255.0 + [-276.836, 135.576, -222.921]
     return _convert_output_type_range(out_img, img_type)
-
-
-def _convert_input_type_range(img: np.ndarray) -> np.ndarray:
-    """Convert the type and range of the input image.
-
-    It converts the input image to np.float32 type and range of [0, 1].
-
-    Args:
-    ----
-        img (ndarray): The input image.
-
-    Returns:
-    -------
-        (ndarray): The converted image with type of float32 and range of
-            [0, 1].
-
-    """
-    img_type = img.dtype
-    img = img.astype(np.float32)
-    if img_type == "float32" or img_type == "float16":
-        pass
-    elif img_type == "uint8":
-        img /= 255.0
-    else:
-        msg = f"The img type should be np.float32, np.float16 or np.uint8, but got {img_type}"
-        raise TypeError(msg)
-    return img
-
-
-def _convert_output_type_range(img: np.ndarray, dst_type: DTypeLike) -> np.ndarray:
-    """Convert the type and range of the image according to dst_type.
-
-    It converts the image to desired type and range. If `dst_type` is uint8,
-    images will be converted to np.uint8 type with range [0, 255]. If
-    `dst_type` is float32, float16, it converts the image to
-    those types with range [0, 1].
-
-    Args:
-    ----
-        img (ndarray): The image to be converted with np.float32 type and
-            range [0, 255].
-        dst_type (type): If dst_type is uint8, it converts the image to np.uint8
-            type with range [0, 255]. If dst_type is float32, it converts the
-            image to np.float32 type with range [0, 1].
-
-    Returns:
-    -------
-        (ndarray): The converted image with desired type and range.
-
-    """
-    if str(dst_type) not in {
-        "np.uint8",
-        "np.float32",
-        "np.float16",
-        "float32",
-        "float16",
-        "uint8",
-    }:
-        msg = f"The dst_type should be np.float32, np.float16 or np.uint8, but got {dst_type}"
-        raise TypeError(msg)
-    if dst_type == np.uint8:
-        img = img.round()
-    else:
-        img /= 255.0
-    return img.astype(dst_type)
 
 
 def rgb2ycbcr_pt(img: Tensor, y_only: bool = False) -> Tensor:

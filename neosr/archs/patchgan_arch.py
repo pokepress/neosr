@@ -43,6 +43,20 @@ class patchgan(nn.Module):
 
     """
 
+    def _get_norm_layer(self, norm_type="batch"):
+        if norm_type == "batch":
+            norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+        elif norm_type == "instance":
+            norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
+        elif norm_type == "batchnorm2d":
+            norm_layer = nn.BatchNorm2d
+        elif norm_type == "none":
+            norm_layer = nn.Identity
+        else:
+            raise NotImplementedError(f"normalization layer [{norm_type}] is not found")
+
+        return norm_layer
+
     def __init__(
         self,
         num_in_ch=3,
@@ -127,20 +141,6 @@ class patchgan(nn.Module):
         if use_sigmoid:
             sequence += [nn.Sigmoid()]
         self.model = nn.Sequential(*sequence)
-
-    def _get_norm_layer(self, norm_type="batch"):
-        if norm_type == "batch":
-            norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-        elif norm_type == "instance":
-            norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
-        elif norm_type == "batchnorm2d":
-            norm_layer = nn.BatchNorm2d
-        elif norm_type == "none":
-            norm_layer = nn.Identity
-        else:
-            raise NotImplementedError(f"normalization layer [{norm_type}] is not found")
-
-        return norm_layer
 
     def forward(self, x):
         return self.model(x)

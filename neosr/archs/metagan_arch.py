@@ -79,6 +79,13 @@ class GatedCNNBlock(nn.Module):
             also used by InceptionNeXt (https://arxiv.org/abs/2303.16900) and FasterNet (https://arxiv.org/abs/2303.03667)
     """
 
+    @staticmethod
+    def _init_weights(m):
+        if isinstance(m, nn.Conv2d | nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
     def __init__(
         self, dim, expansion_ratio=8 / 3, conv_ratio=1.0, drop_path=0.0, att=False
     ):
@@ -95,13 +102,6 @@ class GatedCNNBlock(nn.Module):
         self.fc2 = nn.Linear(hidden, dim)
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.apply(self._init_weights)
-
-    @staticmethod
-    def _init_weights(m):
-        if isinstance(m, nn.Conv2d | nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         shortcut = x  # [B, H, W, C]

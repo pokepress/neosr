@@ -32,6 +32,9 @@ class EnlargedSampler(Sampler):
         self.num_samples = math.ceil(len(self.dataset) * ratio / self.num_replicas)
         self.total_size = self.num_samples * self.num_replicas
 
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = epoch
+
     def __iter__(self) -> Iterator[int]:
         # deterministically shuffle based on epoch
         g = torch.Generator(device="cuda")
@@ -49,6 +52,3 @@ class EnlargedSampler(Sampler):
 
     def __len__(self) -> int:
         return self.num_samples
-
-    def set_epoch(self, epoch: int) -> None:
-        self.epoch = epoch

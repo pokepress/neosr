@@ -134,6 +134,10 @@ class RectSparsePLKConv2d(nn.Module):
 class SparsePLKConv2d(nn.Module):
     """Sparse Partial Large Kernel Convolutional Layer (RepLKNet and UniRepLKNet style)"""
 
+    @staticmethod
+    def _calc_rep_kernel_size(ks, dilation):
+        return (ks - 1) * dilation + 1
+
     def __init__(
         self,
         dim,
@@ -179,10 +183,6 @@ class SparsePLKConv2d(nn.Module):
         for conv in self.convs:
             out = out + conv(x1)
         return torch.cat([out, x2], dim=1)
-
-    @staticmethod
-    def _calc_rep_kernel_size(ks, dilation):
-        return (ks - 1) * dilation + 1
 
     @staticmethod
     def _get_origin_kernel(kernel, dilation=1, p=0):

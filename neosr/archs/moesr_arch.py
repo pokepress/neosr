@@ -153,6 +153,13 @@ class GatedCNNBlock(nn.Module):
     https://github.com/yuweihao/MambaOut/blob/main/models/mambaout.py#L119
     """
 
+    @staticmethod
+    def _init_weights(m):
+        if isinstance(m, nn.Conv2d | nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
     def __init__(
         self, dim: int = 64, expansion_ratio: float = 8 / 3, conv_ratio: float = 1.0
     ):
@@ -169,13 +176,6 @@ class GatedCNNBlock(nn.Module):
         self.fc2 = nn.Conv2d(hidden, dim, 3, 1, 1)
         self.gamma = nn.Parameter(torch.ones([1, dim, 1, 1]), requires_grad=True)
         self.apply(self._init_weights)
-
-    @staticmethod
-    def _init_weights(m):
-        if isinstance(m, nn.Conv2d | nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         shortcut = x

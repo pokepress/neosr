@@ -50,6 +50,16 @@ def build_dataset(dataset_opt: dict[str, Any]):
     return dataset
 
 
+def worker_init_fn(worker_id: int, num_workers: int, rank: int, seed: int) -> None:
+    # Set the worker seed to num_workers * rank + worker_id + seed
+    worker_seed = num_workers * rank + worker_id + seed
+    # NOTE: set seed on old generator as a precaution, but
+    # it is redundand since we use np.random.Generator
+    np.random.seed(worker_seed)  # noqa: NPY002
+    torch.manual_seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def build_dataloader(
     dataset: data.Dataset,
     dataset_opt: dict[str, Any],
@@ -125,13 +135,3 @@ def build_dataloader(
     dataloader_args["persistent_workers"] = dataset_opt.get("persistent_workers", False)
 
     return data.DataLoader(**dataloader_args)
-
-
-def worker_init_fn(worker_id: int, num_workers: int, rank: int, seed: int) -> None:
-    # Set the worker seed to num_workers * rank + worker_id + seed
-    worker_seed = num_workers * rank + worker_id + seed
-    # NOTE: set seed on old generator as a precaution, but
-    # it is redundand since we use np.random.Generator
-    np.random.seed(worker_seed)  # noqa: NPY002
-    torch.manual_seed(worker_seed)
-    random.seed(worker_seed)

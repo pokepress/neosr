@@ -602,6 +602,14 @@ class MetaPipeline(nn.Module):
 
 @ARCH_REGISTRY.register()
 class flexnet(nn.Module):
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.RMSNorm):
+            nn.init.constant_(m.weight, 1.0)
     def __init__(
         self,
         inp_channels: int = 3,
@@ -675,14 +683,6 @@ class flexnet(nn.Module):
             )
 
         self.apply(self._init_weights)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            nn.init.trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.RMSNorm):
-            nn.init.constant_(m.weight, 1.0)
 
     def check_img_size(self, x, resolution):
         h, w = resolution

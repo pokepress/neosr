@@ -8,6 +8,18 @@ from neosr.utils.registry import LOSS_REGISTRY
 
 
 class GaussianFilter2D(nn.Module):
+    def _get_gaussian_window1d(self) -> Tensor:
+        sigma2 = self.sigma * self.sigma
+        x = torch.arange(-(self.window_size // 2), self.window_size // 2 + 1)
+        w = torch.exp(-0.5 * x**2 / sigma2)
+        w = w / w.sum()
+        return w.reshape(1, 1, 1, self.window_size)
+
+    def _get_gaussian_window2d(self, gaussian_window_1d) -> Tensor:
+        return torch.matmul(
+            gaussian_window_1d.transpose(dim0=-1, dim1=-2), gaussian_window_1d
+        )
+
     def __init__(
         self,
         window_size: int = 11,
@@ -38,18 +50,6 @@ class GaussianFilter2D(nn.Module):
         kernel = self._get_gaussian_window2d(kernel)
         self.register_buffer(
             name="gaussian_window", tensor=kernel.repeat(in_channels, 1, 1, 1)
-        )
-
-    def _get_gaussian_window1d(self) -> Tensor:
-        sigma2 = self.sigma * self.sigma
-        x = torch.arange(-(self.window_size // 2), self.window_size // 2 + 1)
-        w = torch.exp(-0.5 * x**2 / sigma2)
-        w = w / w.sum()
-        return w.reshape(1, 1, 1, self.window_size)
-
-    def _get_gaussian_window2d(self, gaussian_window_1d) -> Tensor:
-        return torch.matmul(
-            gaussian_window_1d.transpose(dim0=-1, dim1=-2), gaussian_window_1d
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -125,23 +125,6 @@ class mssim_loss(nn.Module):
 
         return self.loss_weight * loss
 
-    def msssim(self, x: Tensor, y: Tensor) -> Tensor:
-        ms_components = []
-        for i, w in enumerate((0.0448, 0.2856, 0.3001, 0.2363, 0.1333)):
-            ssim, cs = self._ssim(x, y)
-            ssim = ssim.mean()
-            cs = cs.mean()
-
-            if i == 4:
-                ms_components.append(ssim**w)
-            else:
-                ms_components.append(cs**w)
-                padding = [s % 2 for s in x.shape[2:]]  # spatial padding
-                x = F.avg_pool2d(x, kernel_size=2, stride=2, padding=padding)
-                y = F.avg_pool2d(y, kernel_size=2, stride=2, padding=padding)
-
-        return math.prod(ms_components)  # equ 7 in ref2
-
     def _ssim(self, x: Tensor, y: Tensor) -> tuple[Tensor, Tensor]:
         mu_x = self.gaussian_filter(x)  # equ 14
         mu_y = self.gaussian_filter(y)  # equ 14
@@ -160,3 +143,20 @@ class mssim_loss(nn.Module):
         ssim = l1 * cs
 
         return ssim, cs
+
+    def msssim(self, x: Tensor, y: Tensor) -> Tensor:
+        ms_components = []
+        for i, w in enumerate((0.0448, 0.2856, 0.3001, 0.2363, 0.1333)):
+            ssim, cs = self._ssim(x, y)
+            ssim = ssim.mean()
+            cs = cs.mean()
+
+            if i == 4:
+                ms_components.append(ssim**w)
+            else:
+                ms_components.append(cs**w)
+                padding = [s % 2 for s in x.shape[2:]]  # spatial padding
+                x = F.avg_pool2d(x, kernel_size=2, stride=2, padding=padding)
+                y = F.avg_pool2d(y, kernel_size=2, stride=2, padding=padding)
+
+        return math.prod(ms_components)  # equ 7 in ref2

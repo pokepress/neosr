@@ -7,6 +7,34 @@ import lmdb
 from tqdm import tqdm
 
 
+def read_img_worker(path, key, compress_level):
+    """Read image worker.
+
+    Args:
+    ----
+        path (str): Image path.
+        key (str): Image key.
+        compress_level (int): Compress level when encoding images.
+
+    Returns:
+    -------
+        str: Image key.
+        byte: Image byte.
+        tuple[int]: Image shape.
+
+    """
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    if img.ndim == 2:
+        h, w = img.shape
+        c = 1
+    else:
+        h, w, c = img.shape
+    _, img_byte = cv2.imencode(
+        ".png", img, [cv2.IMWRITE_PNG_COMPRESSION, compress_level]
+    )
+    return (key, img_byte, (h, w, c))
+
+
 def make_lmdb_from_imgs(
     data_path,
     lmdb_path,
@@ -145,34 +173,6 @@ def make_lmdb_from_imgs(
     env.close()
     txt_file.close()
     print("\nFinish writing lmdb.")
-
-
-def read_img_worker(path, key, compress_level):
-    """Read image worker.
-
-    Args:
-    ----
-        path (str): Image path.
-        key (str): Image key.
-        compress_level (int): Compress level when encoding images.
-
-    Returns:
-    -------
-        str: Image key.
-        byte: Image byte.
-        tuple[int]: Image shape.
-
-    """
-    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-    if img.ndim == 2:
-        h, w = img.shape
-        c = 1
-    else:
-        h, w, c = img.shape
-    _, img_byte = cv2.imencode(
-        ".png", img, [cv2.IMWRITE_PNG_COMPRESSION, compress_level]
-    )
-    return (key, img_byte, (h, w, c))
 
 
 class LmdbMaker:

@@ -42,6 +42,58 @@ class AvgTimer:
         return self.avg_time
 
 
+def get_root_logger(
+    logger_name: str = "neosr",
+    log_level: int = logging.INFO,
+    log_file: str | None = None,
+) -> logging.Logger:
+    """Get the root logger.
+
+    The logger will be initialized if it has not been initialized. By default a
+    StreamHandler will be added. If `log_file` is specified, a FileHandler will
+    also be added.
+
+    Args:
+    ----
+        logger_name (str): root logger name. Default: 'neosr'.
+        log_file (str | None): The log filename. If specified, a FileHandler
+            will be added to the root logger.
+        log_level (int): The root logger level. Note that only the process of
+            rank 0 is affected, while other processes will set the level to
+            "Error" and be silent most of the time.
+
+    Returns:
+    -------
+        logging.Logger: The root logger.
+
+    """
+    logger = logging.getLogger(logger_name)
+    # if the logger has been initialized, just return it
+    if logger_name in initialized_logger:
+        return logger
+
+    format_str = "%(asctime)s %(levelname)s: %(message)s"
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(
+        logging.Formatter(format_str, datefmt="%d-%m-%Y %I:%M %p |")
+    )
+    logger.addHandler(stream_handler)
+    logger.propagate = False
+    rank, _ = get_dist_info()
+    if rank != 0:
+        logger.setLevel("ERROR")
+    elif log_file is not None:
+        logger.setLevel(log_level)
+        # add file handler
+        file_handler = logging.FileHandler(log_file, "w", encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter(format_str))
+        file_handler.setLevel(log_level)
+        logger.addHandler(file_handler)
+    initialized_logger[logger_name] = True
+
+    return logger
+
+
 class MessageLogger:
     """Message logger for printing.
 
@@ -139,8 +191,7 @@ def init_wandb_logger(opt: dict[str, Any]) -> None:
     logger = get_root_logger()
 
     project = opt["logger"]["wandb"]["project"]
-    resume_id = opt["logger"]["wandb"].get("resume_id")
-    if resume_id:
+    if resume_id := opt["logger"]["wandb"].get("resume_id"):
         wandb_id = resume_id
         resume = "allow"
         logger.warning(f"Resume wandb logger with id={wandb_id}.")
@@ -158,55 +209,3 @@ def init_wandb_logger(opt: dict[str, Any]) -> None:
     )
 
     logger.info(f"Use wandb logger with id={wandb_id}; project={project}.")
-
-
-def get_root_logger(
-    logger_name: str = "neosr",
-    log_level: int = logging.INFO,
-    log_file: str | None = None,
-) -> logging.Logger:
-    """Get the root logger.
-
-    The logger will be initialized if it has not been initialized. By default a
-    StreamHandler will be added. If `log_file` is specified, a FileHandler will
-    also be added.
-
-    Args:
-    ----
-        logger_name (str): root logger name. Default: 'neosr'.
-        log_file (str | None): The log filename. If specified, a FileHandler
-            will be added to the root logger.
-        log_level (int): The root logger level. Note that only the process of
-            rank 0 is affected, while other processes will set the level to
-            "Error" and be silent most of the time.
-
-    Returns:
-    -------
-        logging.Logger: The root logger.
-
-    """
-    logger = logging.getLogger(logger_name)
-    # if the logger has been initialized, just return it
-    if logger_name in initialized_logger:
-        return logger
-
-    format_str = "%(asctime)s %(levelname)s: %(message)s"
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(
-        logging.Formatter(format_str, datefmt="%d-%m-%Y %I:%M %p |")
-    )
-    logger.addHandler(stream_handler)
-    logger.propagate = False
-    rank, _ = get_dist_info()
-    if rank != 0:
-        logger.setLevel("ERROR")
-    elif log_file is not None:
-        logger.setLevel(log_level)
-        # add file handler
-        file_handler = logging.FileHandler(log_file, "w", encoding="utf-8")
-        file_handler.setFormatter(logging.Formatter(format_str))
-        file_handler.setLevel(log_level)
-        logger.addHandler(file_handler)
-    initialized_logger[logger_name] = True
-
-    return logger

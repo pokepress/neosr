@@ -187,6 +187,15 @@ class ea2fpn(nn.Module):
     https://doi.org/10.1080/01431161.2022.2030071.
     """
 
+    def _init_weights(self, m: nn.Module) -> None:
+        if isinstance(m, nn.Linear):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.GroupNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
     def __init__(
         self,
         class_num: int = 6,
@@ -242,15 +251,6 @@ class ea2fpn(nn.Module):
             in_channels=6, out_ch=3, scale=4, groups=3, end_convolution=False
         )
         self.apply(self._init_weights)
-
-    def _init_weights(self, m: nn.Module) -> None:
-        if isinstance(m, nn.Linear):
-            nn.init.trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.GroupNorm):
-            nn.init.constant_(m.bias, 0)
-            nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x: Tensor) -> Tensor:
         # ==> get encoder features

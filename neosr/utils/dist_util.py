@@ -9,18 +9,6 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 
-def init_dist(launcher, backend: str = "nccl", **kwargs) -> None:
-    if mp.get_start_method(allow_none=True) is None:
-        mp.set_start_method("spawn")
-    if launcher == "pytorch":
-        _init_dist_pytorch(backend, **kwargs)
-    elif launcher == "slurm":
-        _init_dist_slurm(backend, **kwargs)
-    else:
-        msg = f"Invalid launcher type: {launcher}"
-        raise ValueError(msg)
-
-
 def _init_dist_pytorch(backend: str, **kwargs) -> None:
     rank = int(os.environ["RANK"])
     num_gpus = torch.cuda.device_count()
@@ -60,6 +48,18 @@ def _init_dist_slurm(backend: str, port: int) -> None:
     os.environ["LOCAL_RANK"] = str(proc_id % num_gpus)
     os.environ["RANK"] = str(proc_id)
     dist.init_process_group(backend=backend)
+
+
+def init_dist(launcher, backend: str = "nccl", **kwargs) -> None:
+    if mp.get_start_method(allow_none=True) is None:
+        mp.set_start_method("spawn")
+    if launcher == "pytorch":
+        _init_dist_pytorch(backend, **kwargs)
+    elif launcher == "slurm":
+        _init_dist_slurm(backend, **kwargs)
+    else:
+        msg = f"Invalid launcher type: {launcher}"
+        raise ValueError(msg)
 
 
 def get_dist_info() -> tuple[int, int]:

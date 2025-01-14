@@ -5,18 +5,6 @@ from neosr.utils import scandir
 from neosr.utils.lmdb_util import make_lmdb_from_imgs
 
 
-def create_lmdb():
-    """Create lmdb files.
-    Before run this script, please run `extract_subimages.py`.
-    """
-    folder_path = args.input
-    lmdb_path = args.output
-    img_path_list, keys = prepare_keys(folder_path)
-    make_lmdb_from_imgs(
-        folder_path, lmdb_path, img_path_list, keys, multiprocessing_read=True
-    )
-
-
 def prepare_keys(folder_path):
     """Prepare image path list and keys.
 
@@ -35,6 +23,18 @@ def prepare_keys(folder_path):
     keys = [img_path.split(".png")[0] for img_path in sorted(img_path_list)]
 
     return img_path_list, keys
+
+
+def create_lmdb():
+    """Create lmdb files.
+    Before run this script, please run `extract_subimages.py`.
+    """
+    folder_path = args.input
+    lmdb_path = args.output
+    img_path_list, keys = prepare_keys(folder_path)
+    make_lmdb_from_imgs(
+        folder_path, lmdb_path, img_path_list, keys, multiprocessing_read=True
+    )
 
 
 if __name__ == "__main__":

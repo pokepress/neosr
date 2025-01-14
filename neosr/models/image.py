@@ -16,7 +16,7 @@ from neosr.losses import build_loss
 from neosr.losses.wavelet_guided import wavelet_guided
 from neosr.metrics import calculate_metric
 from neosr.models.base import base
-from neosr.optimizers import adamw_sf, adan, adan_sf, fsam #, soap_sf
+from neosr.optimizers import adamw_sf, adan, adan_sf, fsam  # , soap_sf
 from neosr.utils import get_root_logger, imwrite, tc, tensor2img
 from neosr.utils.registry import MODEL_REGISTRY
 
@@ -372,8 +372,8 @@ class image(base):
                 base_optimizer = adamw_sf
             elif optim_type in {"Adan_SF", "adan_sf"}:
                 base_optimizer = adan_sf
-            #elif optim_type in {"SOAP_SF", "soap_sf"}:
-            #    base_optimizer = soap_sf 
+            # elif optim_type in {"SOAP_SF", "soap_sf"}:
+            #    base_optimizer = soap_sf
             else:
                 msg = (
                     f"{tc.red}SAM not supported by optimizer {optim_type} yet.{tc.end}"
@@ -872,6 +872,27 @@ class image(base):
         if self.opt["rank"] == 0:
             self.nondist_validation(dataloader, current_iter, tb_logger, save_img)
 
+    def _log_validation_metric_values(
+        self, current_iter: int, dataset_name: str, tb_logger
+    ) -> None:
+        log_str = f"Validation {dataset_name}\n\n"
+        for metric, value in self.metric_results.items():
+            log_str += f"\t # {metric}: {value:.4f}"
+            if hasattr(self, "best_metric_results"):
+                log_str += (
+                    f"{tc.light_green}........ Best: {self.best_metric_results[dataset_name][metric]['val']:.4f} @ "
+                    f"{self.best_metric_results[dataset_name][metric]['iter']} iter{tc.end}"
+                )
+            log_str += "\n"
+
+        logger = get_root_logger()
+        logger.info(log_str)
+        if tb_logger:
+            for metric, value in self.metric_results.items():
+                tb_logger.add_scalar(
+                    f"metrics/{dataset_name}/{metric}", value, current_iter
+                )
+
     def nondist_validation(
         self, dataloader, current_iter: int, tb_logger, save_img: bool = True
     ) -> None:
@@ -989,27 +1010,6 @@ class image(base):
             self._log_validation_metric_values(current_iter, dataset_name, tb_logger)
 
         self.is_train = True
-
-    def _log_validation_metric_values(
-        self, current_iter: int, dataset_name: str, tb_logger
-    ) -> None:
-        log_str = f"Validation {dataset_name}\n\n"
-        for metric, value in self.metric_results.items():
-            log_str += f"\t # {metric}: {value:.4f}"
-            if hasattr(self, "best_metric_results"):
-                log_str += (
-                    f"{tc.light_green}........ Best: {self.best_metric_results[dataset_name][metric]['val']:.4f} @ "
-                    f"{self.best_metric_results[dataset_name][metric]['iter']} iter{tc.end}"
-                )
-            log_str += "\n"
-
-        logger = get_root_logger()
-        logger.info(log_str)
-        if tb_logger:
-            for metric, value in self.metric_results.items():
-                tb_logger.add_scalar(
-                    f"metrics/{dataset_name}/{metric}", value, current_iter
-                )
 
     def get_current_visuals(self) -> OrderedDict:
         out_dict = OrderedDict()

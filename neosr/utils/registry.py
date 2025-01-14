@@ -90,14 +90,14 @@ class Registry:
             raise KeyError(msg)
         return ret
 
-    def __contains__(self, name: str) -> bool:
-        return name in self._obj_map
+    def keys(self) -> Iterable[str]:
+        return self._obj_map.keys()
 
     def __iter__(self) -> Iterator[tuple[str, Callable[..., Any] | type[str] | str]]:
         return iter(self._obj_map.items())
 
-    def keys(self) -> Iterable[str]:
-        return self._obj_map.keys()
+    def __contains__(self, name: str) -> bool:
+        return name in self._obj_map
 
 
 DATASET_REGISTRY = Registry("dataset")
