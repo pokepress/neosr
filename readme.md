@@ -89,6 +89,9 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 | [FlexNet](https://github.com/umzi2/FlexNet)					| `flexnet`, `metaflexnet`			   |
 | [CFSR](https://github.com/Aitical/CFSR)					| `cfsr`					   |
 | [Sebica](https://github.com/idiosyncracies/Sebica)				| `sebica`, `sebica_mini`			   |
+| [NinaSR](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)	| `ninasr`, `ninasr_b0`, `ninasr_b2`		   |
+| [RCAN](https://github.com/yulunzhang/RCAN)					| `rcan`					   |
+| [MoESR](https://github.com/umzi2/MoESR)					| `moesr`					   |
 
 > [!NOTE]
 > For all arch-specific parameters, [read the wiki](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options).
@@ -97,7 +100,6 @@ Where `options.toml` is a configuration file. Templates can be found in [options
 
 | arch										| option					   |
 |-------------------------------------------------------------------------------|--------------------------------------------------|
-| [NinaSR](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)	| `ninasr`, `ninasr_b0`, `ninasr_b2`		   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):

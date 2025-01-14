@@ -65,3 +65,5 @@
 | [`Sebica`](https://github.com/idiosyncracies/Sebica)								| [MIT](https://github.com/idiosyncracies/Sebica/blob/main/LICENSE)						|
 | [`NinaSR`](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)					| [MIT](https://github.com/Coloquinte/torchSR/blob/main/LICENSE)						|
 | [`MetaGan`](https://github.com/umzi2/MetaGan)									| [MIT](https://github.com/umzi2/MetaGan/blob/master/LICENSE)							|
+| [`RCAN`](https://github.com/yulunzhang/RCAN)									| Unknown													|
+| [`MoESR`](https://github.com/umzi2/MoESR)									| [MIT](https://github.com/umzi2/MoESR/blob/master/LICENSE)							|
