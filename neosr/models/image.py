@@ -16,7 +16,7 @@ from neosr.losses import build_loss
 from neosr.losses.wavelet_guided import wavelet_guided
 from neosr.metrics import calculate_metric
 from neosr.models.base import base
-from neosr.optimizers import adamw_sf, adan, adan_sf, fsam
+from neosr.optimizers import adamw_sf, adan, adan_sf, fsam #, soap_sf
 from neosr.utils import get_root_logger, imwrite, tc, tensor2img
 from neosr.utils.registry import MODEL_REGISTRY
 
@@ -258,7 +258,7 @@ class image(base):
             logger.info("Loss [wavelet-guided] enabled.")
 
         # gradient clipping
-        self.gradclip = self.opt["train"].get("grad_clip", True)
+        self.gradclip = self.opt["train"].get("grad_clip", False)
 
         # log sam
         if self.sam is not None:
@@ -372,6 +372,8 @@ class image(base):
                 base_optimizer = adamw_sf
             elif optim_type in {"Adan_SF", "adan_sf"}:
                 base_optimizer = adan_sf
+            #elif optim_type in {"SOAP_SF", "soap_sf"}:
+            #    base_optimizer = soap_sf 
             else:
                 msg = (
                     f"{tc.red}SAM not supported by optimizer {optim_type} yet.{tc.end}"

@@ -5,4 +5,4 @@ from neosr.optimizers.adan_sf import adan_sf
 from neosr.optimizers.fsam import fsam
 #from neosr.optimizers.soap_sf import soap_sf 
 
-__all__ = ["adamw_sf", "adamw_win", "adan", "adan_sf", "fsam"]
+__all__ = ["adamw_sf", "adamw_win", "adan", "adan_sf", "fsam"] #, "soap_sf"]

@@ -165,7 +165,7 @@ class base:
             optimizer = adamw_sf(params, lr, **kwargs)
         elif optim_type in {"Adan_SF", "adan_sf"}:
             optimizer = adan_sf(params, lr, **kwargs)
-        #elif optim_type in {"soap_sf"}:
+        #elif optim_type in {"SOAP_SF", "soap_sf"}:
         #    optimizer = soap_sf(params, lr, **kwargs)
         else:
             logger = get_root_logger()

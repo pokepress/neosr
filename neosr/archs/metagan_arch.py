@@ -1,129 +1,12 @@
 from collections.abc import Sequence
-from typing import Literal
 
 import torch
-from einops import rearrange
 from torch import nn
+from torch.nn.init import trunc_normal_
+from torch.nn.utils import spectral_norm
 
+from neosr.archs.arch_util import DropPath
 from neosr.utils.registry import ARCH_REGISTRY
-
-SE_MODS = Literal["SSE", "CSE", "CSSE"]
-
-
-class CSELayer(nn.Module):
-    def __init__(self, num_channels: int = 48, reduction_ratio: int = 2):
-        super().__init__()
-        num_channels_reduced = num_channels // reduction_ratio
-        self.squeezing = nn.Sequential(
-            nn.Linear(num_channels, num_channels_reduced, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Linear(num_channels_reduced, num_channels, bias=True),
-            nn.Hardsigmoid(inplace=True),
-        )
-
-    def forward(self, input_tensor):
-        squeeze_tensor = torch.mean(input_tensor, dim=1, keepdim=True)
-        return input_tensor * self.squeezing(squeeze_tensor)
-
-
-class SSELayer(nn.Module):
-    def __init__(self, dim: int = 48):
-        super().__init__()
-        self.squeezing = nn.Sequential(nn.Linear(dim, 1), nn.Hardsigmoid(inplace=True))
-
-    def forward(self, x):
-        return x * self.squeezing(x)
-
-
-class CSSELayer(nn.Module):
-    def __init__(self, dim: int = 48):
-        super().__init__()
-        self.sse = SSELayer(dim)
-        self.cse = CSELayer(dim)
-
-    def forward(self, x):
-        return torch.max(self.sse(x), self.cse(x))
-
-
-class SepConv(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        expansion_ratio: float = 2,
-        bias: bool = False,
-        kernel_size: int = 7,
-    ):
-        super().__init__()
-        med_channels = int(expansion_ratio * dim)
-        self.pwconv1 = nn.Linear(dim, med_channels, bias=bias)
-        self.act1 = nn.Hardswish(inplace=True)
-        self.dwconv = nn.Conv2d(
-            med_channels,
-            med_channels,
-            kernel_size=kernel_size,
-            padding=kernel_size // 2,
-            groups=med_channels,
-            bias=bias,
-        )  # depthwise conv
-        self.pwconv2 = nn.Linear(med_channels, dim, bias=bias)
-
-    def forward(self, x, resolution):
-        H, W = resolution
-        x = self.pwconv1(x)
-        x = self.act1(x)
-        x = rearrange(x, "b (h w) c -> b c h w", h=H, w=W)
-        x = self.dwconv(x)
-        x = rearrange(x, "b c h w -> b (h w) c")
-        return self.pwconv2(x)
-
-
-class DWConv(nn.Module):
-    def __init__(self, hidden_features: int = 48):
-        super().__init__()
-        self.depthwise_conv = nn.Sequential(
-            nn.Conv2d(
-                hidden_features,
-                hidden_features,
-                kernel_size=5,
-                stride=1,
-                padding=2,
-                dilation=1,
-                groups=hidden_features,
-                bias=False,
-            ),
-            nn.Mish(inplace=True),  # https://arxiv.org/pdf/1908.08681
-        )
-        self.hidden_features = hidden_features
-
-    def forward(self, x, x_size):
-        x = (
-            x.transpose(1, 2)
-            .view(x.shape[0], self.hidden_features, x_size[0], x_size[1])
-            .contiguous()
-        )  # b Ph*Pw c
-        x = self.depthwise_conv(x)
-        return x.flatten(2).transpose(1, 2).contiguous()
-
-
-class FFN(nn.Module):
-    def __init__(
-        self, in_features: int = 48, mlp_ratio: float = 2.0, drop: float = 0.0
-    ):
-        super().__init__()
-        hidden_features = int(in_features * mlp_ratio)
-        self.act = nn.Mish(inplace=True)  # https://arxiv.org/pdf/1908.08681
-        self.fc1 = nn.Linear(in_features, hidden_features, bias=False)
-        self.dwconv = DWConv(hidden_features=hidden_features)
-        self.fc2 = nn.Linear(hidden_features, in_features, bias=False)
-        self.drop = nn.Dropout(drop)
-
-    def forward(self, x, x_size):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = x + self.dwconv(x, x_size)
-        x = self.drop(x)
-        x = self.fc2(x)
-        return self.drop(x)
 
 
 class Attention(nn.Module):
@@ -134,147 +17,133 @@ class Attention(nn.Module):
 
     def __init__(
         self,
-        dim: int = 48,
-        head_dim: int = 32,
-        bias: bool = False,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
+        dim,
+        head_dim=32,
+        num_heads=None,
+        qkv_bias=False,
+        attn_drop=0.0,
+        proj_drop=0.0,
+        proj_bias=False,
     ):
         super().__init__()
 
         self.head_dim = head_dim
         self.scale = head_dim**-0.5
 
-        self.num_heads = dim // head_dim
+        self.num_heads = num_heads or dim // head_dim
         if self.num_heads == 0:
             self.num_heads = 1
 
         self.attention_dim = self.num_heads * self.head_dim
 
-        self.qkv = nn.Linear(dim, self.attention_dim * 3, bias=bias)
-        self.attn_drop = attn_drop
-        self.proj = nn.Sequential(
-            nn.Linear(self.attention_dim, dim, bias=bias), nn.Dropout(proj_drop)
-        )
+        self.qkv = nn.Linear(dim, self.attention_dim * 3, bias=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.dropout_p = attn_drop
+        self.proj = nn.Linear(self.attention_dim, dim, bias=proj_bias)
+        self.proj_drop = nn.Dropout(proj_drop)
 
-    def forward(self, x, _):
-        B, N, _C = x.shape
+    def forward(self, x):
+        B, H, W, _C = x.shape
+        N = H * W
         qkv = (
             self.qkv(x)
             .reshape(B, N, 3, self.num_heads, self.head_dim)
             .permute(2, 0, 3, 1, 4)
         )
         q, k, v = qkv.unbind(0)  # make torchscript happy (cannot use tensor as tuple)
-        with torch.no_grad():
-            nn.functional.scaled_dot_product_attention(
-                q, k, v, scale=self.scale, dropout_p=self.attn_drop
-            ).transpose(1, 2).reshape(B, N, self.attention_dim)
-        return self.proj(x)
+
+        x = nn.functional.scaled_dot_product_attention(
+            q, k, v, scale=self.scale, dropout_p=self.dropout_p
+        )
+        x = x.transpose(1, 2).reshape(B, H, W, self.attention_dim)
+        x = self.proj(x)
+
+        return self.proj_drop(x)
 
 
-class Block(nn.Module):
+class DConv(nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.conv = nn.Conv2d(dim, dim, kernel_size=7, padding=7 // 2, groups=dim)
+
+    def forward(self, x):
+        return self.conv(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+
+
+class GatedCNNBlock(nn.Module):
+    r"""Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083
+    Args:
+        conv_ratio: control the number of channels to conduct depthwise convolution.
+            Conduct convolution on partial channels can improve paraitcal efficiency.
+            The idea of partial channels is from ShuffleNet V2 (https://arxiv.org/abs/1807.11164) and
+            also used by InceptionNeXt (https://arxiv.org/abs/2303.16900) and FasterNet (https://arxiv.org/abs/2303.03667)
+    """
+
     def __init__(
-        self,
-        dim: int = 64,
-        att: bool = False,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
-        head_dim: int = 32,
-        mlp_ratio: float = 2.0,
-        se_mod: SE_MODS = "SSE",
+        self, dim, expansion_ratio=8 / 3, conv_ratio=1.0, drop_path=0.0, att=False
     ):
         super().__init__()
-        self.t_mix = (
-            SepConv(dim)
-            if not att
-            else Attention(
-                dim, head_dim, bias=False, attn_drop=attn_drop, proj_drop=proj_drop
-            )
-        )
-        self.c_mix = FFN(dim, mlp_ratio)
-        if se_mod == "SSE":
-            self.se = SSELayer(dim)
-        elif se_mod == "CSE":
-            self.se = CSELayer(dim)
-        else:
-            self.se = CSSELayer(dim)
-        self.norm1 = nn.RMSNorm(dim)
-        self.norm2 = nn.RMSNorm(dim)
-        self.gamma1 = nn.Parameter(torch.ones(dim), requires_grad=True)
-        self.gamma2 = nn.Parameter(torch.ones(dim), requires_grad=True)
+        if att:
+            expansion_ratio = 1.5
+        self.norm = nn.RMSNorm(dim, eps=1e-6)
+        hidden = int(expansion_ratio * dim)
+        self.fc1 = nn.Linear(dim, hidden * 2)
+        self.act = nn.Mish()
+        conv_channels = int(conv_ratio * dim)
+        self.split_indices = (hidden, hidden - conv_channels, conv_channels)
+        self.conv = Attention(conv_channels) if att else DConv(conv_channels)
+        self.fc2 = nn.Linear(hidden, dim)
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.apply(self._init_weights)
 
-    def forward(self, x, res):
-        x = self.gamma1 * self.t_mix(self.norm1(x), res) + x
-        x = self.gamma2 * self.c_mix(self.norm2(x), res) + x
-        return self.se(x)
+    @staticmethod
+    def _init_weights(m):
+        if isinstance(m, nn.Conv2d | nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        shortcut = x  # [B, H, W, C]
+        x = self.norm(x)
+        g, i, c = torch.split(self.fc1(x), self.split_indices, dim=-1)
+        c = self.conv(c)
+        x = self.fc2(self.act(g) * torch.cat((i, c), dim=-1))
+        x = self.drop_path(x)
+        return x + shortcut
+
+
+class Down(nn.Sequential):
+    def __init__(self, dim: int = 48, out_dim: int = 48):
+        super().__init__(
+            spectral_norm(nn.Conv2d(dim, out_dim, 3, 2, 1)), nn.GroupNorm(4, out_dim)
+        )
 
 
 class Blocks(nn.Module):
-    def __init__(
-        self,
-        dim: int = 2,
-        n_block: int = 2,
-        att: bool = False,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
-        head_dim: int = 32,
-        mlp_ratio: float = 2.0,
-        se_mod: SE_MODS = "sse",
-    ):
+    def __init__(self, in_dim, out_dim, blocks, scale, att, drop):
         super().__init__()
-        self.blocks = nn.ModuleList() + [
-            Block(dim, att, attn_drop, proj_drop, head_dim, mlp_ratio, se_mod)
-            for _ in range(n_block)
-        ]
-        self.short = nn.Linear(dim * 2, dim)
+        self.down = (
+            Down(in_dim, out_dim)
+            if scale == 2
+            else nn.Sequential(
+                Down(in_dim, out_dim // 2),
+                nn.Mish(inplace=True),
+                Down(out_dim // 2, out_dim),
+            )
+        )
+        self.blocks = nn.Sequential(*[
+            GatedCNNBlock(out_dim, att=att, drop_path=drop[index])
+            for index in range(blocks)
+        ])
 
     def forward(self, x):
-        _B, _C, H, W = x.shape
-        x = rearrange(x, "b c h w-> b (h w) c")
-        short = x
-        for block in self.blocks:
-            x = block(x, (H, W))
-        x = self.short(torch.cat([x, short], -1))
-        return rearrange(x, "b (h w) c -> b c h w", h=H, w=W)
-
-
-class DownPU(nn.Sequential):
-    def __init__(self, dim: int = 48, out_dim: int = 48, down: int = 2):
-        stages = [
-            nn.Conv2d(dim, out_dim // (down * down), 3, 1, 1, bias=False),
-            nn.PixelUnshuffle(down),
-            nn.GroupNorm(4, out_dim),
-        ]
-        super().__init__(*stages)
-
-
-class MlpHead(nn.Module):
-    def __init__(
-        self, dim: int = 48, num_classes: int = 1000, head_dropout: float = 0.0
-    ):
-        super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(dim, dim * 6, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.GroupNorm(4, dim * 6),
-            nn.Hardswish(inplace=True),
-            nn.AdaptiveAvgPool2d(1),
-        )
-        self.to_head = nn.Sequential(
-            nn.Linear(dim * 6, dim * 8, bias=False),
-            nn.RMSNorm(dim * 8),
-            nn.Hardswish(inplace=True),
-            nn.Dropout(head_dropout),
-            nn.Linear(dim * 8, num_classes),
-        )
-
-    def forward(self, x):
-        x = self.conv(x).flatten(1)
-        return self.to_head(x)
+        x = self.down(x).permute(0, 2, 3, 1)
+        return self.blocks(x).permute(0, 3, 1, 2)
 
 
 @ARCH_REGISTRY.register()
 class metagan(nn.Module):
-    # MetaGan: https://github.com/umzi2/MetaGan
     def __init__(
         self,
         in_ch: int = 3,
@@ -282,37 +151,33 @@ class metagan(nn.Module):
         dims: Sequence[int] = (48, 96, 192, 288),
         blocks: Sequence[int] = (3, 3, 9, 3),
         downs: Sequence[int] = (4, 4, 2, 2),
-        se_mode: SE_MODS = "SSE",  # cse, csse, sse
-        mlp_ratio: float = 2.0,
-        attention: bool = True,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
-        head_dim: int = 32,
-        drop: float = 0.2,
-        sigmoid: bool = False,
+        drop_path=0.02,
+        end_drop=0.2,
     ):
         super().__init__()
         dims = [in_ch, *list(dims)]
-        states = []
-        for index in range(len(blocks)):
-            states.extend((
-                DownPU(dims[index], dims[index + 1], downs[index]),
+        dp_rates = [
+            x.tolist() for x in torch.linspace(0, drop_path, sum(blocks)).split(blocks)
+        ]
+        self.stages = nn.Sequential(
+            *[
                 Blocks(
+                    dims[index],
                     dims[index + 1],
                     blocks[index],
-                    index > 1 if attention else False,
-                    attn_drop,
-                    proj_drop,
-                    head_dim,
-                    mlp_ratio,
-                    se_mode,
-                ),
-            ))
-
-        states.append(MlpHead(dims[-1], n_class, head_dropout=drop))
-        if sigmoid:
-            states.append(nn.Hardsigmoid(inplace=True))
-        self.stages = nn.Sequential(*states)
+                    downs[index],
+                    index > 1,
+                    dp_rates[index],
+                )
+                for index in range(len(blocks))
+            ]
+            + [
+                spectral_norm(nn.Conv2d(dims[-1], 100, 1, 1, 0)),
+                nn.Mish(inplace=True),
+                nn.Dropout(end_drop),
+                spectral_norm(nn.Conv2d(100, n_class, 1, 1, 0)),
+            ]
+        )
 
     def forward(self, x):
         return self.stages(x)
