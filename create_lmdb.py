@@ -1,4 +1,3 @@
-# noqa: INP001
 import argparse
 
 from neosr.utils import scandir

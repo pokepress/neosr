@@ -26,13 +26,13 @@ For more information see our [wiki](https://github.com/neosr-project/neosr/wiki)
 
 ## 💻 installation
 
-Requires Python 3.12 and CUDA >=12.4.
-Clone the repository and install via [**`poetry`**](https://python-poetry.org/docs/#installation):
+Requires CUDA >=12.6.
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and [`git`](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). Then:
 
 ```
 git clone https://github.com/neosr-project/neosr
 cd neosr
-poetry install --sync
+uv sync
 ```
 See detailed [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) for more details.
 
@@ -41,7 +41,7 @@ See detailed [Installation Instructions](https://github.com/neosr-project/neosr/
 Start training by running:
 
 ```
-python train.py -opt options.toml
+uv run train.py -opt options.toml
 ```
 Where `options.toml` is a configuration file. Templates can be found in [options](options/).
 

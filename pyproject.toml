@@ -79,7 +79,6 @@ lint.ignore = [
     "TD003",
 ]
 exclude = ["*_arch.py"]
-target-version = "py312"
 preview = true
 
 [tool.ruff.format]
