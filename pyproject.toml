@@ -1,40 +1,50 @@
+[build-system]
+requires = ["flit_core"]
+build-backend = "flit_core.buildapi"
+
 [project]
 name = "neosr"
 version = "1.0.0"
 description = "neosr is an open-source framework for training super-resolution models. It provides a comprehensive and reproducible environment for achieving state-of-the-art image restoration results, making it suitable for both the enthusiastic community, professionals and machine learning academic researchers. It serves as a versatile platform and aims to bridge the gap between practical application and academic research in the field."
-requires-python = ">=3.12,<3.13"
-authors = [{ name = "neosr-project", email = "132400428+neosr-project@users.noreply.github.com" }]
-license = "Apache-2.0"
 readme = "readme.md"
-repository = "https://github.com/neosr-project/neosr"
-documentation = "https://github.com/neosr-project/neosr/wiki"
-dependencies = [
-	"setuptools (>=75.6.0)",
-	"tqdm (>=4.66.5)",
-	"numpy (>=2.1.2)",
-	"scipy (>=1.14.1)",
-	"opencv-python-headless (>=4.10)",
-	"lmdb (>=1.5.1)",
-	"tb-nightly (>=2.19.0a20241004)",
-	"onnx (>=1.17.0)",
-	"onnxruntime-gpu (>=1.19.2)",
-	"onnxconverter-common (>=1.14.0)",
-	"einops (>=0.8)",
-	"pywavelets (>=1.7.0)",
-	"torch (>=2.5.1+cu124)",
-	"torchvision (>=0.20.1+cu124)",
+requires-python = ">=3.13,<3.14"
+keywords = [
+  "neosr", "super-resolution", "machine-learning", "image-restoration"
+]
+authors = [{ name = "neosr-project", email = "132400428+neosr-project@users.noreply.github.com" }]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
 ]
 
-[[tool.poetry.source]]
-name = "pytorch_gpu"
-url = "https://download.pytorch.org/whl/cu124"
-priority = "explicit"
+dependencies = [
+    "einops>=0.8.0",
+    "lmdb>=1.6.2",
+    "numpy>=2.2.1",
+    "onnx>=1.17.0",
+    "onnxconverter-common>=1.14.0",
+    "onnxruntime-gpu>=1.20.1",
+    "opencv-python-headless>=4.10.0.84",
+    "pywavelets>=1.8.0",
+    "scipy>=1.15.1",
+    "tb-nightly>=2.19.0a20250114",
+    "torch>=2.7.0.dev20250114",
+    "torchvision>=0.22.0.dev20250114",
+    "tqdm>=4.67.1",
+]
 
+[project.urls]
+Repository = "https://github.com/neosr-project/neosr"
+Documentation = "https://github.com/neosr-project/neosr/wiki"
 
-[tool.poetry.dependencies]
-torch = {source = "pytorch_gpu"}
-torchvision = {source = "pytorch_gpu"}
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
 
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/nightly/cu126"
+explicit = true
 
 [tool.ruff]
 lint.select = ["ALL"]
@@ -72,20 +82,12 @@ exclude = ["*_arch.py"]
 target-version = "py312"
 preview = true
 
-
 [tool.ruff.format]
 skip-magic-trailing-comma = true
 line-ending = "lf"
 
-
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false
 
-
 [tool.ruff.lint.per-file-ignores]
 "neosr/__init__.py" = ["F403"]
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
