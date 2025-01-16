@@ -57,6 +57,7 @@ else
     git clone https://github.com/neosr-project/neosr >/dev/null 2>&1
     cd neosr
     git checkout dev >/dev/null 2>&1
+    # TODO
 fi
 
 # install uv

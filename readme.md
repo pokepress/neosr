@@ -15,7 +15,7 @@ Join our <a href="https://discord.gg/NN2HGtJ3d6">Discord</a>
 
 - **Reproducible**: this framework emphasizes the importance of reproducible research. It provides deterministic training environments that can create bit-exact reproducible models (on the same platform), ensuring predictable and reliable results, which are essential for maintaining consistency in academic validation.
 
-- **Simple**: features are easy to implement or modify. Code is written in readable Python, no fancy styling. All code is validated and formatted by [`ruff`](https://docs.astral.sh/ruff/), [`mypy`](https://www.mypy-lang.org/) and [`torchfix`](https://github.com/pytorch-labs/torchfix).
+- **Simple**: features are easy to implement or modify. Code is written in readable Python, no fancy styling. All code is managed, validated and formatted by [`uv`](https://docs.astral.sh/uv/), [`ruff`](https://docs.astral.sh/ruff/), [`mypy`](https://www.mypy-lang.org/) and [`torchfix`](https://github.com/pytorch-labs/torchfix).
 
 For more information see our [wiki](https://github.com/neosr-project/neosr/wiki).
 
@@ -27,14 +27,18 @@ For more information see our [wiki](https://github.com/neosr-project/neosr/wiki)
 ## 💻 installation
 
 Requires CUDA >=12.6.
-Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and [`git`](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). Then:
 
+**Windows**:
+```ps1
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/neosr-project/neosr/refs/heads/master/install_windows.ps1 | iex"
 ```
-git clone https://github.com/neosr-project/neosr
-cd neosr
-uv sync
+
+**Linux**:
+```bash
+curl -LsSf https://raw.githubusercontent.com/neosr-project/neosr/refs/heads/master/install_linux.sh | sh
 ```
-See detailed [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) for more details.
+
+For manual install details, see our [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) wiki.
 
 ## ⏩ quick start
 

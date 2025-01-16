@@ -103,11 +103,13 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
 # Create and move to installation directory
 $INSTALL_DIR = "$env:USERPROFILE\Desktop\neosr"
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
-Set-Location $env:USERPROFILE\Desktop
+Set-Location $env:USERPROFILE\Desktop\
 
 # Clone repository
 git clone https://github.com/neosr-project/neosr
 Set-Location neosr
+git checkout dev
+# TODO
 
 # Install uv
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -118,7 +120,8 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 # Update uv and sync dependencies
 uv self update > $null 2>&1
 Write-Host "--- syncing dependencies (this might take several minutes)..."
-uv sync > $null 2>&1
+uv cache clean
+uv sync
 
 # Create functions for commands
 $PROFILE_CONTENT = @'
@@ -138,7 +141,6 @@ function neosr-update {
     Set-Location "$env:USERPROFILE\Desktop\neosr"
     git pull --autostash
     uv sync
-    uv lock
 }
 '@
 
@@ -147,5 +149,8 @@ if (!(Test-Path -Path $PROFILE)) {
     New-Item -ItemType File -Path $PROFILE -Force | Out-Null
 }
 Add-Content -Path $PROFILE -Value $PROFILE_CONTENT
+
+# Refresh PATH
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 Write-Host "--- neosr installation complete!"
