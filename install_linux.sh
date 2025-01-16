@@ -98,7 +98,7 @@ cat > "$ALIAS_FILE" << 'EOF'
 alias neosr-train='uv run --isolated train.py -opt'
 alias neosr-test='uv run --isolated test.py -opt'
 alias neosr-convert='uv run --isolated convert.py'
-alias neosr-update='git pull --autostash && uv sync && uv lock'
+alias neosr-update='git pull --autostash && uv sync'
 EOF
 # add source to shell config files
 for SHELL_RC in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do

@@ -51,7 +51,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                 $installed = $true
             }
             catch {
-                Write-Host "--- failed to install git using winget."
+                Write-Host "\033[1;31m--- failed to install git using winget.\033[0m"
             }
         }
         
@@ -64,7 +64,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                     $installed = $true
                 }
                 catch {
-                    Write-Host "--- failed to install git using scoop."
+                    Write-Host "\033[1;31m--- failed to install git using scoop.\033[0m"
                 }
             }
             # If scoop is not installed, offer to install it
@@ -78,7 +78,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                             $installed = $true
                         }
                         catch {
-                            Write-Host "--- failed to install Git using scoop."
+                            Write-Host "\033[1;31m--- failed to install Git using scoop.\033[0m"
                         }
                     }
                 }
@@ -90,12 +90,12 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         }
         else {
-            Write-Error "--- failed to install git through any available method. Please install it manually from https://git-scm.com/"
+            Write-Error "\033[1;31m--- failed to install git through any available method. Please install it manually from https://git-scm.com/ \033[0m"
             exit 1
         }
     }
     else {
-        Write-Host "--- git is required for installation, exiting."
+        Write-Host "\033[1;31m--- git is required for installation, exiting.\033[0m"
         exit 1
     }
 }
@@ -119,8 +119,8 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 # Update uv and sync dependencies
 uv self update > $null 2>&1
-Write-Host "--- syncing dependencies (this might take several minutes)..."
-uv cache clean
+Write-Host "\033[1m--- syncing dependencies (this might take several minutes)...\033[0m\n"
+uv cache clean > $null 2>&1
 uv sync
 
 # Create functions for commands
@@ -153,4 +153,4 @@ Add-Content -Path $PROFILE -Value $PROFILE_CONTENT
 # Refresh PATH
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-Write-Host "--- neosr installation complete!"
+Write-Host "\033[1;32m--- neosr installation complete!\033[0m\n\n"

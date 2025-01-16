@@ -38,16 +38,16 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/neo
 curl -LsSf https://raw.githubusercontent.com/neosr-project/neosr/refs/heads/master/install_linux.sh | sh
 ```
 
-For manual install details, see our [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) wiki.
+For manual installation details, see our [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) wiki.
 
 ## ⏩ quick start
 
 Start training by running:
 
+```bash
+neosr-train config.toml
 ```
-uv run train.py -opt options.toml
-```
-Where `options.toml` is a configuration file. Templates can be found in [options](options/).
+Where `config.toml` is a configuration file. Templates can be found in [options](options/).
 
 > [!TIP]
 > Please read the wiki [Configuration Walkthrough](https://github.com/neosr-project/neosr/wiki/Configuration-Walkthrough) for an explanation of each option.
