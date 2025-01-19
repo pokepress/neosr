@@ -17,7 +17,7 @@ from neosr.losses import build_loss
 from neosr.losses.wavelet_guided import wavelet_guided
 from neosr.metrics import calculate_metric
 from neosr.models.base import base
-from neosr.optimizers import adamw_sf, adan, adan_sf, fsam  # , soap_sf
+from neosr.optimizers import adamw_sf, adan, adan_sf, fsam, soap_sf
 from neosr.utils import get_root_logger, imwrite, tc, tensor2img
 from neosr.utils.registry import MODEL_REGISTRY
 
@@ -263,7 +263,7 @@ class image(base):
             logger.info("Loss [wavelet-guided] enabled.")
 
         # gradient clipping
-        self.gradclip = self.opt["train"].get("grad_clip", False)
+        self.gradclip = self.opt["train"].get("grad_clip", True)
 
         # log sam
         if self.sam is not None:
@@ -316,34 +316,24 @@ class image(base):
             msg = f"{tc.red}Wavelet-Guided requires GAN.{tc.end}"
             logger.error(msg)
             sys.exit(1)
-        if self.net_d is not None:
-            if (
-                self.opt["network_d"].get("type") == "ea2fpn"
-                and self.patch_size == 48
-                and self.scale == 1
-            ):
-                msg = f"""
-                {tc.red}
-                Discriminator ea2fpn does not work with patch_size 48 while doing 1x ratio.
-                Please increase or decrease patch_size.
-                {tc.end}
-                """
-                logger.error(msg)
-                sys.exit(1)
-            if (
-                self.opt["network_d"].get("type") == "metagan"
-                and self.patch_size % 32 != 0
-            ):
-                msg = f"""
-                {tc.red}
-                Discriminator metagan requires patch size to be divisible by 32.
-                {tc.end}
-                """
-                logger.error(msg)
-                sys.exit(1)
+        if (
+            self.net_d is not None
+            and self.opt["network_d"].get("type") == "ea2fpn"
+            and self.patch_size == 48
+            and self.scale == 1
+        ):
+            msg = f"""
+            {tc.red}
+            Discriminator ea2fpn does not work with patch_size 48 while doing 1x ratio.
+            Please increase or decrease patch_size.
+            {tc.end}
+            """
+            logger.error(msg)
+            sys.exit(1)
 
     def setup_optimizers(self) -> None:
         train_opt = self.opt["train"]
+        gradclip = self.opt["train"].get("grad_clip", True)
         optim_params = []
         logger = get_root_logger()
         for k, v in self.net_g.named_parameters():  # type: ignore[reportAttributeAccessIssue,attr-defined]
@@ -351,16 +341,23 @@ class image(base):
                 optim_params.append(v)
             else:
                 logger.warning(f"Params {k} will not be optimized.")
+
         # optimizer g
         optim_type = train_opt["optim_g"].pop("type")
+
         # condition for schedule_free
         if (
-            optim_type in {"AdamW_SF", "adamw_sf", "adan_sf", "Adan_SF"}
+            optim_type in {"AdamW_SF", "adamw_sf", "adan_sf", "Adan_SF", "soap_sf"}
             and "schedule_free" not in train_opt["optim_g"]
         ):
             msg = f"{tc.red}The option 'schedule_free' must be in the config file.{tc.end}"
             logger.error(msg)
             sys.exit(1)
+        if optim_type == "soap_sf" and gradclip is True:
+            msg = f"{tc.red}SOAP optimizer require gradclip to be disabled.{tc.end}"
+            logger.error(msg)
+            sys.exit(1)
+
         # get optimizer g
         self.optimizer_g = self.get_optimizer(
             optim_type, optim_params, **train_opt["optim_g"]
@@ -377,8 +374,8 @@ class image(base):
                 base_optimizer = adamw_sf
             elif optim_type in {"Adan_SF", "adan_sf"}:
                 base_optimizer = adan_sf
-            # elif optim_type in {"SOAP_SF", "soap_sf"}:
-            #    base_optimizer = soap_sf
+            elif optim_type in {"SOAP_SF", "soap_sf"}:
+                base_optimizer = soap_sf
             else:
                 msg = (
                     f"{tc.red}SAM not supported by optimizer {optim_type} yet.{tc.end}"
@@ -414,6 +411,11 @@ class image(base):
                 msg = f"{tc.red}The option 'schedule_free' must be in the config file.{tc.end}"
                 logger.error(msg)
                 sys.exit(1)
+            if optim_type == "soap_sf" and gradclip is True:
+                msg = f"{tc.red}SOAP optimizer require gradclip to be disabled.{tc.end}"
+                logger.error(msg)
+                sys.exit(1)
+
             # get optimizer d
             self.optimizer_d = self.get_optimizer(
                 optim_type,
