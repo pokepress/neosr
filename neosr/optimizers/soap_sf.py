@@ -761,7 +761,7 @@ class soap_sf(ScheduleFree):
     def __init__(
         self,
         params,
-        lr: float = 3e-3,
+        lr: float = 1e-3,
         beta=0.9,
         beta2_scale: float = 0.8,
         eps: float = 1e-8,
@@ -772,7 +772,7 @@ class soap_sf(ScheduleFree):
         precondition_1d: bool = False,
         normalize_grads: bool = False,
         correct_bias: bool = True,
-        warmup_steps: int = 1,
+        warmup_steps: int = 1600,
         r=0.0,
         weight_lr_power=2.0,
         gradient_clip_val: float = 0.1,

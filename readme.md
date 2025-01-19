@@ -129,7 +129,7 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | [AdamW Schedule-Free](https://github.com/facebookresearch/schedule_free)  | `adamw_sf`		 |
 | [Adan Schedule-Free](https://github.com/neosr-project/adan_schedule_free) | `adan_sf`			 |
 | [F-SAM](https://github.com/nblt/F-SAM)				    | `fsam`, `FSAM`		 |
-| [SOAP](https://github.com/nikhilvyas/SOAP)				    | `soap`			 |
+| [SOAP-SF](https://github.com/ClashLuke/HeavyBall)			    | `soap_sf`			 |
 
 ### [supported losses](https://github.com/neosr-project/neosr/wiki/Losses):
 
