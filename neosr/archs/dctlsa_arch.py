@@ -1,6 +1,7 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import torch
 import torch.nn.functional as F
+from collections import OrderedDict
 from torch import nn
 
 from neosr.archs.arch_util import net_opt, to_2tuple

@@ -22,7 +22,6 @@ def pad_tensor(t, pattern):
     return t
 
 
-
 class ASR(nn.Module):
     def __init__(self, n_feat):
         super().__init__()
@@ -224,6 +223,7 @@ class Block(nn.Module):
         if self.training:
             return PConv(n_feat)
         return nn.Conv2d(n_feat, n_feat, 3, 1, 1)
+
     def __init__(self, n_feat, version, f=16):
         super().__init__()
         self.f = f

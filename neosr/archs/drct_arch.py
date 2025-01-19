@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import math
 
 import torch
@@ -758,6 +758,7 @@ class drct(nn.Module):
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
+
     def __init__(
         self,
         img_size=64,
@@ -918,7 +919,7 @@ class drct(nn.Module):
         return x
 
     def forward(self, x):
-        '''
+        """
         # make sure x is divisible by window-size
         _, _, h_old, w_old = x.size()
         h_pad = (h_old // self.window_size + 1) * self.window_size - h_old
@@ -928,7 +929,7 @@ class drct(nn.Module):
         if pad:
             x = torch.cat([x, torch.flip(x, [2])], 2)[:, :, : h_old + h_pad, :]
             x = torch.cat([x, torch.flip(x, [3])], 3)[:, :, :, : w_old + w_pad]
-        '''
+        """
 
         self.mean = self.mean.type_as(x)
         x = (x - self.mean) * self.img_range

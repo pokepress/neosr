@@ -610,6 +610,7 @@ class flexnet(nn.Module):
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.RMSNorm):
             nn.init.constant_(m.weight, 1.0)
+
     def __init__(
         self,
         inp_channels: int = 3,

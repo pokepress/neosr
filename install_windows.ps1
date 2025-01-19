@@ -51,7 +51,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                 $installed = $true
             }
             catch {
-                Write-Host "\033[1;31m--- failed to install git using winget.\033[0m"
+                Write-Host "--- failed to install git using winget." -ForegroundColor Red
             }
         }
         
@@ -64,7 +64,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                     $installed = $true
                 }
                 catch {
-                    Write-Host "\033[1;31m--- failed to install git using scoop.\033[0m"
+                    Write-Host "--- failed to install git using scoop." -ForegroundColor Red
                 }
             }
             # If scoop is not installed, offer to install it
@@ -78,7 +78,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                             $installed = $true
                         }
                         catch {
-                            Write-Host "\033[1;31m--- failed to install Git using scoop.\033[0m"
+                            Write-Host "--- failed to install Git using scoop." -ForegroundColor Red
                         }
                     }
                 }
@@ -90,12 +90,12 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         }
         else {
-            Write-Error "\033[1;31m--- failed to install git through any available method. Please install it manually from https://git-scm.com/ \033[0m"
+            Write-Error "--- failed to install git through any available method. Please install it manually from https://git-scm.com/" -ForegroundColor Red
             exit 1
         }
     }
     else {
-        Write-Host "\033[1;31m--- git is required for installation, exiting.\033[0m"
+        Write-Host "--- git is required for installation, exiting." -ForegroundColor Red 
         exit 1
     }
 }
@@ -108,8 +108,6 @@ Set-Location $env:USERPROFILE\Desktop\
 # Clone repository
 git clone https://github.com/neosr-project/neosr
 Set-Location neosr
-git checkout dev
-# TODO
 
 # Install uv
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -119,7 +117,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 # Update uv and sync dependencies
 uv self update > $null 2>&1
-Write-Host "\033[1m--- syncing dependencies (this might take several minutes)...\033[0m\n"
+Write-Host "--- syncing dependencies (this might take several minutes)..." -ForegroundColor Green
 uv cache clean > $null 2>&1
 uv sync
 
@@ -153,4 +151,4 @@ Add-Content -Path $PROFILE -Value $PROFILE_CONTENT
 # Refresh PATH
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-Write-Host "\033[1;32m--- neosr installation complete!\033[0m\n\n"
+Write-Host "--- neosr installation complete!\n\n" -ForegroundColor Green

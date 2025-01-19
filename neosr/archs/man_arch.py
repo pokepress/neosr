@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import torch
 import torch.nn.functional as F
 from torch import nn

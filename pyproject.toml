@@ -75,8 +75,7 @@ lint.ignore = [
     "S403",
     "SLF001",
     "T201",
-    "TD002",
-    "TD003",
+    "TD",
 ]
 exclude = ["*_arch.py"]
 preview = true

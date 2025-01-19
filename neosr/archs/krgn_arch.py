@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -152,8 +152,8 @@ class RCG(nn.Module):
                 self.conv_acts.append(
                     nn.Sequential(
                         nn.Conv2d(in_channels, in_channels, 3, 1, 1, 1, groups=groups),
-                        #RecConv(in_channels, in_channels, kernel_size=3, stride = 1, padding=None, groups=groups, learn_k=3),
-                        #activation("prelu", n_prelu=in_channels),
+                        # RecConv(in_channels, in_channels, kernel_size=3, stride = 1, padding=None, groups=groups, learn_k=3),
+                        # activation("prelu", n_prelu=in_channels),
                     )
                 )
             else:
@@ -168,8 +168,8 @@ class RCG(nn.Module):
                             dilation,
                             groups=groups,
                         ),
-                        #RecConv(in_channels, in_channels, kernel_size=3, stride = 1, padding=None, groups=groups, learn_k=3),
-                        #activation("prelu", n_prelu=in_channels),
+                        # RecConv(in_channels, in_channels, kernel_size=3, stride = 1, padding=None, groups=groups, learn_k=3),
+                        # activation("prelu", n_prelu=in_channels),
                     )
                 )
         self.conv_acts = nn.Sequential(*self.conv_acts)

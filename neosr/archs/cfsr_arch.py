@@ -281,6 +281,7 @@ class cfsr(nn.Module):
             nn.init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Conv2d) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
+
     def __init__(
         self,
         in_chans=3,

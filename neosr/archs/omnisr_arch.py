@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import math
 
 import torch
@@ -193,7 +193,7 @@ class GRN(nn.Module):
         self.beta = nn.Parameter(torch.zeros(1, dim, 1, 1))
 
     def forward(self, x):
-        Gx = torch.norm(x, p=2, dim=(2, 3), keepdim=True)  # noqa: TOR101
+        Gx = torch.norm(x, p=2, dim=(2, 3), keepdim=True)
         Nx = Gx / (Gx.mean(dim=1, keepdim=True) + 1e-6)
         return self.gamma * (x * Nx) + self.beta + x
 

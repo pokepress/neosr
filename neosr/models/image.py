@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import torch
+from einops import rearrange
 from torch import Tensor
 from torch.nn import functional as F
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
@@ -119,6 +120,10 @@ class image(base):
         # augmentations
         self.aug = self.opt["datasets"]["train"].get("augmentation", None)
         self.aug_prob = self.opt["datasets"]["train"].get("aug_prob", None)
+
+        # validation options
+        self.tile = self.opt["val"].get("tile", -1)
+        self.save_lq = self.opt["val"].get("save_lq", True)
 
         # for amp
         self.use_amp = self.opt.get("use_amp", False) is True
@@ -744,127 +749,53 @@ class image(base):
                 if self.net_d is not None:
                     self.net_d_ema.update_parameters(self.net_d)  # type: ignore[reportArgumentType,arg-type]
 
-    def test(self) -> None:
-        self.tile = self.opt["val"].get("tile", -1)
-        scale = self.opt["scale"]
-        if self.tile == -1:
-            if self.sf_optim_g and self.is_train:
-                self.optimizer_g.eval()  # type: ignore[attr-defined]
+    def tile_val(self) -> Tensor:
+        b, c, h, w = self.lq.shape
+        device = self.lq.device
 
-            with torch.inference_mode():
-                if hasattr(self, "ema"):
-                    if self.ema > 0:
-                        self.net_g_ema.eval()
-                        self.output = self.net_g_ema(self.lq)
-                else:
-                    self.net_g.eval()  # type: ignore[reportAttributeAccessIssue,attr-defined]
-                    self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
+        # pad
+        pad_h = -h % self.tile
+        pad_w = -w % self.tile
+        img_pad = F.pad(self.lq, (0, pad_w, 0, pad_h), "reflect")
 
-            self.net_g.train()  # type: ignore[reportAttributeAccessIssue,attr-defined]
-            if self.sf_optim_g and self.is_train:
-                self.optimizer_g.train()  # type: ignore[attr-defined]
-        # test by partitioning
-        else:
-            _, C, h, w = self.lq.size()
+        # split
+        tiles = rearrange(
+            img_pad.cpu(),
+            "b c (h th) (w tw) -> (b h w) c th tw",
+            th=self.tile,
+            tw=self.tile,
+        )
 
-            if self.opt.get("color", None) == "y":
-                C = 1
+        # pre-allocate on cpu
+        total_tiles = tiles.shape[0]
+        processed = torch.zeros(
+            (total_tiles, c, self.tile * self.scale, self.tile * self.scale),
+            device="cpu",
+        )
+        model = (
+            self.net_g_ema if (hasattr(self, "ema") and self.ema > 0) else self.net_g
+        )
 
-            split_token_h = h // self.tile + 1  # number of horizontal cut sections
-            split_token_w = w // self.tile + 1  # number of vertical cut sections
+        for i in range(0, total_tiles, b):
+            # infer tiles and move to cpu
+            batch = tiles[i : i + b].to(device)
+            with torch.autocast(device_type="cuda", enabled=False):
+                output = model(batch)
+            processed[i : i + b] = output.cpu()
+            # clear memory
+            del batch, output
+            torch.cuda.empty_cache()
 
-            patch_size_tmp_h = split_token_h
-            patch_size_tmp_w = split_token_w
+        # merge in cpu to avoid OOM
+        self.output = rearrange(
+            processed.cpu(),
+            "(b h w) c th tw -> b c (h th) (w tw)",
+            b=b,
+            h=(h + pad_h) // self.tile,
+            w=(w + pad_w) // self.tile,
+        )[:, :, : h * self.scale, : w * self.scale]
 
-            # padding
-            mod_pad_h, mod_pad_w = 0, 0
-            if h % patch_size_tmp_h != 0:
-                mod_pad_h = patch_size_tmp_h - h % patch_size_tmp_h
-            if w % patch_size_tmp_w != 0:
-                mod_pad_w = patch_size_tmp_w - w % patch_size_tmp_w
-
-            img = self.lq
-            img = torch.cat([img, torch.flip(img, [2])], 2)[:, :, : h + mod_pad_h, :]
-            img = torch.cat([img, torch.flip(img, [3])], 3)[:, :, :, : w + mod_pad_w]
-
-            _, _, H, W = img.size()
-            split_h = H // split_token_h  # height of each partition
-            split_w = W // split_token_w  # width of each partition
-
-            # overlapping
-            shave_h = 16
-            shave_w = 16
-            ral = H // split_h
-            row = W // split_w
-            slices = []  # list of partition borders
-            for i in range(ral):
-                for j in range(row):
-                    if i == 0 and i == ral - 1:
-                        top = slice(i * split_h, (i + 1) * split_h)
-                    elif i == 0:
-                        top = slice(i * split_h, (i + 1) * split_h + shave_h)
-                    elif i == ral - 1:
-                        top = slice(i * split_h - shave_h, (i + 1) * split_h)
-                    else:
-                        top = slice(i * split_h - shave_h, (i + 1) * split_h + shave_h)
-                    if j == 0 and j == row - 1:
-                        left = slice(j * split_w, (j + 1) * split_w)
-                    elif j == 0:
-                        left = slice(j * split_w, (j + 1) * split_w + shave_w)
-                    elif j == row - 1:
-                        left = slice(j * split_w - shave_w, (j + 1) * split_w)
-                    else:
-                        left = slice(j * split_w - shave_w, (j + 1) * split_w + shave_w)
-                    temp = (top, left)
-                    slices.append(temp)
-            img_chops = []  # list of partitions
-            for temp in slices:
-                top, left = temp
-                img_chops.append(img[..., top, left])
-
-            if self.is_train:
-                if self.ema > 0:
-                    self.net_g_ema.eval()
-                else:
-                    self.net_g.eval()  # type: ignore[reportAttributeAccessIssue,attr-defined]
-            else:
-                self.net_g.eval()  # type: ignore[reportAttributeAccessIssue,attr-defined]
-
-            if self.sf_optim_g and self.is_train:
-                self.optimizer_g.eval()  # type: ignore[attr-defined]
-
-            with torch.inference_mode():
-                outputs = []
-                for chop in img_chops:
-                    if self.is_train:
-                        out = self.net_g_ema(chop) if self.ema > 0 else self.net_g(chop)  # type: ignore[reportCallIssue,operator]
-                    else:
-                        out = self.net_g(chop)  # type: ignore[reportCallIssue,operator]
-
-                    outputs.append(out)
-                img_ = torch.zeros(1, C, H * scale, W * scale)
-                # merge
-                for i in range(ral):
-                    for j in range(row):
-                        top = slice(i * split_h * scale, (i + 1) * split_h * scale)
-                        left = slice(j * split_w * scale, (j + 1) * split_w * scale)
-                        if i == 0:
-                            top_ = slice(0, split_h * scale)
-                        else:
-                            top_ = slice(shave_h * scale, (shave_h + split_h) * scale)
-                        if j == 0:
-                            left_ = slice(0, split_w * scale)
-                        else:
-                            left_ = slice(shave_w * scale, (shave_w + split_w) * scale)
-                        img_[..., top, left] = outputs[i * row + j][..., top_, left_]
-                self.output = img_
-            self.net_g.train()  # type: ignore[reportAttributeAccessIssue,attr-defined]
-            if self.sf_optim_g and self.is_train:
-                self.optimizer_g.train()  # type: ignore[attr-defined]
-            _, _, h, w = self.output.size()
-            self.output = self.output[
-                :, :, 0 : h - mod_pad_h * scale, 0 : w - mod_pad_w * scale
-            ]
+        return self.output
 
     def dist_validation(
         self, dataloader, current_iter: int, tb_logger, save_img: bool = True
@@ -929,7 +860,24 @@ class image(base):
         for _idx, val_data in enumerate(dataloader):
             img_name = Path(Path(val_data["lq_path"][0]).name).stem
             self.feed_data(val_data)
-            self.test()
+
+            model = (
+                self.net_g_ema
+                if (hasattr(self, "ema") and self.ema > 0)
+                else self.net_g
+            )
+            sf_mode = self.sf_optim_g and self.is_train
+            # set eval mode
+            model.eval()
+            if sf_mode:
+                self.optimizer_g.eval()
+            # inference
+            with torch.inference_mode():
+                self.output = self.tile_val() if self.tile != -1 else model(self.lq)
+            # set train mode
+            model.train()
+            if sf_mode:
+                self.optimizer_g.train()
 
             visuals = self.get_current_visuals()
             sr_img = tensor2img([visuals["result"]])
@@ -946,35 +894,31 @@ class image(base):
 
             # check if dataset has save_img option, and if so overwrite global save_img option
             val_suffix = self.opt["val"].get("suffix", None)
+            v_folder = self.opt["path"]["visualization"]
             if save_img:
                 if self.opt["is_train"]:
                     save_img_path = (
-                        Path(self.opt["path"]["visualization"])
-                        / img_name
-                        / f"{img_name}_{current_iter}.png"
+                        Path(v_folder) / img_name / f"{img_name}_{current_iter}.png"
                     )
                 elif val_suffix is not None:
                     save_img_path = (
-                        Path(self.opt["path"]["visualization"])
+                        Path(v_folder)
                         / dataset_name
                         / f"{img_name}_{self.opt['val']['suffix']}.png"
                     )
                 else:
                     save_img_path = (
-                        Path(self.opt["path"]["visualization"])
+                        Path(v_folder)
                         / dataset_name
                         / f"{img_name}_{self.opt['name']}.png"
                     )
                 imwrite(sr_img, str(save_img_path))  # type: ignore[arg-type]
 
                 # add original lq and gt to results folder, once
-                save_lq_img_path = (
-                    Path(self.opt["path"]["visualization"])
-                    / img_name
-                    / f"{img_name}_lq.png"
-                )
-                original_lq = tensor2img([visuals["lq"]])
-                imwrite(original_lq, str(save_lq_img_path))
+                if self.save_lq:
+                    save_lq_img_path = Path(v_folder) / img_name / f"{img_name}_lq.png"
+                    original_lq = tensor2img([visuals["lq"]])
+                    imwrite(original_lq, str(save_lq_img_path))
 
             # check for dataset option save_tb, to save images on tb_logger
             if self.is_train:

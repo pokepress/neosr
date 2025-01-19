@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import math
 
 import numpy as np
@@ -828,6 +828,7 @@ class rgt(nn.Module):
         ):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
+
     def __init__(
         self,
         img_size=64,

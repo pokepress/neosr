@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import math
 
 import torch
@@ -1382,7 +1382,7 @@ class hma(nn.Module):
 @ARCH_REGISTRY.register()
 def hma_medium(**kwargs):
     return hma(
-        img_size=48,
+        img_size=64,
         window_size=16,
         depths=(6, 6, 6, 6, 6, 6),
         embed_dim=180,

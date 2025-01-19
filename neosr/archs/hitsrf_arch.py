@@ -1,11 +1,11 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import math
 
 import torch
 import torch.nn.functional as F
-from torch.utils import checkpoint
 from torch import nn
 from torch.nn.init import trunc_normal_
+from torch.utils import checkpoint
 
 from neosr.archs.arch_util import DropPath, net_opt, to_2tuple
 from neosr.utils.registry import ARCH_REGISTRY

@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import torch
 from einops import rearrange
 from torch import nn
@@ -480,6 +480,7 @@ class grformer(nn.Module):
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
+
     def __init__(
         self,
         img_size=64,

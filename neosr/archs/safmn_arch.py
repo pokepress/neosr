@@ -1,4 +1,4 @@
-# type: ignore  # noqa: PGH003
+# type: ignore
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -246,9 +246,9 @@ class CCM_light(nn.Module):
         super().__init__()
 
         self.conv = nn.Sequential(
-            nn.Conv2d(dim, int(dim*ffn_scale), 3, 1, 1, bias=False),
+            nn.Conv2d(dim, int(dim * ffn_scale), 3, 1, 1, bias=False),
             nn.GELU(),
-            nn.Conv2d(int(dim*ffn_scale), dim, 1, 1, 0, bias=False)
+            nn.Conv2d(int(dim * ffn_scale), dim, 1, 1, 0, bias=False)
         )
 
     def forward(self, x):
