@@ -26,7 +26,7 @@ For more information see our [wiki](https://github.com/neosr-project/neosr/wiki)
 
 ## 💻 installation
 
-Requires CUDA >=12.6.
+Requires CUDA >=12.4
 
 **Windows**:
 ```ps1
@@ -186,6 +186,7 @@ As part of *neosr*, we have released a series of datasets. The purpose of these 
 - BHI series from [@Phhofm](https://github.com/Phhofm). Read more about the selection process [here](https://huggingface.co/blog/Phips/bhi-filtering). Full version is **recommended** for large networks, while small version is **recommended** for lightweight SISR:
 
 |   dataset    |                         download                                |
+|--------------|-----------------------------------------------------------------|
 | BHI full     | [Release page](https://huggingface.co/datasets/Phips/BHI)       |
 | BHI small    | [Release page](https://huggingface.co/datasets/Phips/BHI_small) |
 | BHI mini     | [Release page](https://huggingface.co/datasets/Phips/BHI_mini)  |
