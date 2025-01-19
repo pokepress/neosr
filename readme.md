@@ -38,6 +38,11 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/neo
 curl -LsSf https://raw.githubusercontent.com/neosr-project/neosr/refs/heads/master/install_linux.sh | sh
 ```
 
+To update neosr, run:
+```bash
+neosr-update
+```
+
 For manual installation details, see our [Installation Instructions](https://github.com/neosr-project/neosr/wiki/Installation-Instructions) wiki.
 
 ## ⏩ quick start
