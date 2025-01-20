@@ -874,8 +874,9 @@ class image(base):
             if sf_mode:
                 self.optimizer_g.eval()
             # inference
+            tile_opt = self.opt["val"].get("tile", -1)
             with torch.inference_mode():
-                self.output = self.tile_val() if self.tile != -1 else model(self.lq)
+                self.output = self.tile_val() if tile_opt != -1 else model(self.lq)
             # set train mode
             model.train()
             if sf_mode:

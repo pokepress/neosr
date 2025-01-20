@@ -197,8 +197,8 @@ As part of *neosr*, we have released a series of datasets. The purpose of these 
 | BHI mini     | [Release page](https://huggingface.co/datasets/Phips/BHI_mini)  |
 | BHI100 (val) | [Release page](https://huggingface.co/datasets/Phips/BHI100)    |
 
-- `Nomos-v2`: contains 6000 images, multipurpose. Data distribution:
-- `nomos_uni` (*recommended for lightweight networks*): contains 2989 images, multipurpose. Meant to be used on lightweight networks (<800k parameters).
+- `Nomos-v2`: contains 6000 images, multipurpose.
+- `nomos_uni`: contains 2989 images, multipurpose. Meant to be used on lightweight networks (<800k parameters).
 
 | 						dataset download   							| 						sha256						  |
 |-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
@@ -226,7 +226,7 @@ Datasets made by the upscaling community. More info can be found in author's rep
 
 | dataset                                                | download 												      |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| [@Phhofm](https://github.com/Phhofm)			 | [HuggingFace](https://huggingface.co/datasets/Phips/DF2K_BHI)					      |
+| [@Phhofm](https://github.com/Phhofm) DF2k-BHI		 | [HuggingFace](https://huggingface.co/datasets/Phips/DF2K_BHI)					      |
 | [@Phhofm](https://github.com/Phhofm) 4xNomosRealWeb	 | [Release page](https://github.com/Phhofm/models/releases/tag/4xnomosrealweb_dataset)			      |
 | [@Phhofm](https://github.com/Phhofm) FaceUp            | [GDrive (4GB)](https://drive.google.com/file/d/1WFY0siR_ERVSnE2p7ouiCfV3wQizpAKr/view)                     |
 | [@Phhofm](https://github.com/Phhofm) SSDIR             | [Gdrive (4.5GB)](https://drive.google.com/file/d/1FA8Q-T3xZ6_KA7SHYgoa6idIS7xpdrl4/view)                   |
