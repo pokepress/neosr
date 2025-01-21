@@ -148,7 +148,4 @@ if (!(Test-Path -Path $PROFILE)) {
 }
 Add-Content -Path $PROFILE -Value $PROFILE_CONTENT
 
-# Refresh PATH
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-
 Write-Host "--- neosr installation complete!" -ForegroundColor Green

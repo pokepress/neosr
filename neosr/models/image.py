@@ -123,7 +123,6 @@ class image(base):
 
         # validation options
         self.tile = self.opt["val"].get("tile", -1)
-        self.save_lq = self.opt["val"].get("save_lq", True)
 
         # for amp
         self.use_amp = self.opt.get("use_amp", False) is True
@@ -918,7 +917,7 @@ class image(base):
                 imwrite(sr_img, str(save_img_path))  # type: ignore[arg-type]
 
                 # add original lq and gt to results folder, once
-                if self.save_lq:
+                if self.save_lq = self.opt["val"].get("save_lq", True):
                     save_lq_img_path = Path(v_folder) / img_name / f"{img_name}_lq.png"
                     original_lq = tensor2img([visuals["lq"]])
                     imwrite(original_lq, str(save_lq_img_path))
