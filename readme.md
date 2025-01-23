@@ -79,7 +79,7 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | [RGT](https://github.com/zhengchen1999/RGT)							    | `rgt`, `rgt_s` 						|
 | [ATD](https://github.com/LabShuHangGU/Adaptive-Token-Dictionary)   				    | `atd`, `atd_light`   					|
 | [PLKSR](https://github.com/dslisleedh/PLKSR)			     				    | `plksr`, `plksr_tiny`	    				|
-| [RealPLKSR](https://github.com/dslisleedh/PLKSR/issues/4)					    | `realplksr`, `realplksr_s`				|
+| [RealPLKSR](https://github.com/dslisleedh/PLKSR/issues/4)					    | `realplksr`, `realplksr_s`, `realplksr_l`			|
 | [DRCT](https://github.com/ming053l/DRCT)			     				    | `drct`, `drct_l`, `drct_s`   				|
 | [MSDAN](https://github.com/Supereeeee/MSDAN)			     				    | `msdan`			    				|
 | [SPANPlus](https://github.com/umzi2/SPANPlus)							    | `spanplus`, `spanplus_sts`, `spanplus_s`, `spanplus_st`   |
