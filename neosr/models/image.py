@@ -753,6 +753,7 @@ class image(base):
     def tile_val(self) -> Tensor:
         b, c, h, w = self.lq.shape
         device = self.lq.device
+        self.tile = self.opt["val"].get("tile", -1)
 
         # pad
         pad_h = -h % self.tile
