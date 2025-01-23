@@ -753,25 +753,26 @@ class image(base):
     def tile_val(self) -> Tensor:
         b, c, h, w = self.lq.shape
         device = self.lq.device
-        self.tile = self.opt["val"].get("tile", -1)
+        tile = self.opt["val"].get("tile", -1)
+        scale = self.opt["scale"]
 
         # pad
-        pad_h = -h % self.tile
-        pad_w = -w % self.tile
+        pad_h = -h % tile
+        pad_w = -w % tile
         img_pad = F.pad(self.lq, (0, pad_w, 0, pad_h), "reflect")
 
         # split
         tiles = rearrange(
             img_pad.cpu(),
             "b c (h th) (w tw) -> (b h w) c th tw",
-            th=self.tile,
-            tw=self.tile,
+            th=tile,
+            tw=tile,
         )
 
         # pre-allocate on cpu
         total_tiles = tiles.shape[0]
         processed = torch.zeros(
-            (total_tiles, c, self.tile * self.scale, self.tile * self.scale),
+            (total_tiles, c, tile * scale, tile * scale),
             device="cpu",
         )
         model = (
@@ -793,9 +794,9 @@ class image(base):
             processed.cpu(),
             "(b h w) c th tw -> b c (h th) (w tw)",
             b=b,
-            h=(h + pad_h) // self.tile,
-            w=(w + pad_w) // self.tile,
-        )[:, :, : h * self.scale, : w * self.scale]
+            h=(h + pad_h) // tile,
+            w=(w + pad_w) // tile,
+        )[:, :, : h * scale, : w * scale]
 
         return self.output
 
@@ -918,7 +919,7 @@ class image(base):
                 imwrite(sr_img, str(save_img_path))  # type: ignore[arg-type]
 
                 # add original lq and gt to results folder, once
-                if self.save_lq = self.opt["val"].get("save_lq", True):
+                if self.opt["val"].get("save_lq", True):
                     save_lq_img_path = Path(v_folder) / img_name / f"{img_name}_lq.png"
                     original_lq = tensor2img([visuals["lq"]])
                     imwrite(original_lq, str(save_lq_img_path))
