@@ -134,7 +134,7 @@ class SqueezeExcitation(nn.Module):
         self.gate = nn.Sequential(
             Reduce("b c h w -> b c", "mean"),
             nn.Linear(dim, hidden_dim, bias=False),
-            nn.SiLU(),
+            nn.SiLU(inplace=True),
             nn.Linear(hidden_dim, dim, bias=False),
             nn.Sigmoid(),
             Rearrange("b c -> b c 1 1"),
@@ -733,7 +733,7 @@ class asid(nn.Module):
         self,
         num_in_ch=3,
         num_out_ch=3,
-        num_feat=64,
+        num_feat=48,
         res_num=3,
         block_num=1,
         window_size=8,
