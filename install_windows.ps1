@@ -123,23 +123,23 @@ uv sync
 # aliases
 $PROFILE_CONTENT = @'
 function neosr-train { 
-    Set-Location "{0}"
+    Set-Location "$INSTALL_DIR"
     uv run --isolated train.py -opt $args 
 }
 function neosr-test { 
-    Set-Location "{0}"
+    Set-Location "$INSTALL_DIR"
     uv run --isolated test.py -opt $args 
 }
 function neosr-convert { 
-    Set-Location "{0}"
+    Set-Location "$INSTALL_DIR"
     uv run --isolated convert.py $args 
 }
 function neosr-update {
-    Set-Location "{0}"
+    Set-Location "$INSTALL_DIR"
     git pull --autostash
     uv sync
 }
-'@ -f $INSTALL_DIR
+'@
 
 # create or update powershell profile
 if (!(Test-Path -Path $PROFILE)) {

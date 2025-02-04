@@ -37,6 +37,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/neo
 ```bash
 curl -LsSf https://raw.githubusercontent.com/neosr-project/neosr/refs/heads/master/install_linux.sh | sh
 ```
+Note: `neosr` will be installed on your terminal current path.
 
 To update neosr, run:
 ```bash
