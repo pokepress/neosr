@@ -1,11 +1,11 @@
 Write-Host "--- starting neosr installation..."
 
-# Function to check admin privileges
+# check admin privileges
 function Test-AdminPrivileges {
     return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 }
 
-# Function to prompt for package installation
+# prompt for package installation
 function Prompt-Install {
     param(
         [string]$Package
@@ -15,7 +15,7 @@ function Prompt-Install {
     return $answer -match '^[Yy]'
 }
 
-# Function to elevate privileges if needed and restart script
+# elevate privileges if needed and restart script
 function Start-AdminSession {
     if (-not (Test-AdminPrivileges)) {
         Write-Host "--- requesting administrator privileges for package installation..."
@@ -24,7 +24,7 @@ function Start-AdminSession {
     }
 }
 
-# Function to install scoop
+# install scoop
 function Install-Scoop {
     try {
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -37,12 +37,12 @@ function Install-Scoop {
     }
 }
 
-# Check if git is installed
+# check if git is installed
 if (!(Get-Command git -ErrorAction SilentlyContinue)) {
     if (Prompt-Install "Git") {
         $installed = $false
         
-        # Try winget first
+        # try winget first
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             Write-Host "--- attempting to install git using winget..."
             try {
@@ -55,7 +55,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
             }
         }
         
-        # If winget failed, try scoop
+        # if winget failed, try scoop
         if (-not $installed) {
             if (Get-Command scoop -ErrorAction SilentlyContinue) {
                 Write-Host "--- attempting to install git using scoop..."
@@ -67,7 +67,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
                     Write-Host "--- failed to install git using scoop." -ForegroundColor Red
                 }
             }
-            # If scoop is not installed, offer to install it
+            # if scoop is not installed, offer to install it
             else {
                 Write-Host "--- scoop is not installed."
                 if (Prompt-Install "Scoop package manager") {
@@ -86,7 +86,7 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
         }
         
         if ($installed) {
-            # Refresh PATH
+            # refresh PATH
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         }
         else {
@@ -100,52 +100,50 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
     }
 }
 
-# Create and move to installation directory
-$INSTALL_DIR = "$env:USERPROFILE\Desktop\neosr"
+# create and move to installation directory
+$INSTALL_DIR = "$(Get-Location)\neosr"
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
-Set-Location $env:USERPROFILE\Desktop\
 
-# Clone repository
+# clone repo
 git clone https://github.com/neosr-project/neosr
 Set-Location neosr
 
-# Install uv
+# install uv
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Refresh PATH
+# refresh PATH
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-# Update uv and sync dependencies
+# update uv and sync dependencies
 uv self update > $null 2>&1
 Write-Host "--- syncing dependencies (this might take several minutes)..." -ForegroundColor Green
 uv cache clean > $null 2>&1
 uv sync
 
-# Create functions for commands
+# aliases
 $PROFILE_CONTENT = @'
 function neosr-train { 
-    Set-Location "$env:USERPROFILE\Desktop\neosr"
+    Set-Location "{0}"
     uv run --isolated train.py -opt $args 
 }
 function neosr-test { 
-    Set-Location "$env:USERPROFILE\Desktop\neosr"
+    Set-Location "{0}"
     uv run --isolated test.py -opt $args 
 }
 function neosr-convert { 
-    Set-Location "$env:USERPROFILE\Desktop\neosr"
+    Set-Location "{0}"
     uv run --isolated convert.py $args 
 }
 function neosr-update {
-    Set-Location "$env:USERPROFILE\Desktop\neosr"
+    Set-Location "{0}"
     git pull --autostash
     uv sync
 }
-'@
+'@ -f $INSTALL_DIR
 
-# Create or update PowerShell profile
+# create or update powershell profile
 if (!(Test-Path -Path $PROFILE)) {
     New-Item -ItemType File -Path $PROFILE -Force | Out-Null
 }
 Add-Content -Path $PROFILE -Value $PROFILE_CONTENT
-
 Write-Host "--- neosr installation complete!" -ForegroundColor Green
