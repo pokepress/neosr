@@ -69,3 +69,4 @@
 | [`MoESR`](https://github.com/umzi2/MoESR)									| [MIT](https://github.com/umzi2/MoESR/blob/master/LICENSE)							|
 | SOAP implementation from [`HeavyBall`](https://github.com/ClashLuke/HeavyBall)				| [BSD](https://github.com/ClashLuke/HeavyBall/blob/main/LICENSE)						|
 | [`ASID`](https://github.com/saturnian77/ASID)									| Unknown													|
+| [`TOPIQ`](https://github.com/chaofengc/IQA-PyTorch)								| [CC-NC-SA 4.0](https://github.com/chaofengc/IQA-PyTorch/blob/main/LICENSE)					|

@@ -86,7 +86,8 @@ val_freq = 1000
 
 [network_g]
 type = "realplksr"
-#type = "realplksr_tiny"
+#type = "realplksr_s"
+#type = "realplksr_l"
 #dysample = true
 
 [network_d]

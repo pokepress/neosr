@@ -16,6 +16,7 @@ dataroot_lq = 'C:\datasets\val\'
 [network_g]
 type = "realplksr"
 #type = "realplksr_s"
+#type = "realplksr_l"
 #dysample = true
 
 [path]

@@ -1,10 +1,10 @@
 from copy import deepcopy
 from typing import Any
 
-from neosr.metrics.calculate import calculate_dists, calculate_psnr, calculate_ssim
+from neosr.metrics.calculate import calculate_dists, calculate_topiq, calculate_psnr, calculate_ssim
 from neosr.utils.registry import METRIC_REGISTRY
 
-__all__ = ["calculate_dists", "calculate_psnr", "calculate_ssim"]
+__all__ = ["calculate_dists", "calculate_topiq", "calculate_psnr", "calculate_ssim"]
 
 
 def calculate_metric(data, opt: dict[str, Any]) -> float:

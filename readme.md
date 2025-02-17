@@ -160,6 +160,15 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | [MS-SWD](https://github.com/real-hjq/MS-SWD)											| `msswd_opt`, `msswd_loss`		     |
 | [FDL](https://github.com/eezkni/FDL)												| `fdl_opt`, `fdl_loss`			     |
 
+### [supported metrics](https://github.com/neosr-project/neosr/wiki/Configuration-Walkthrough#validation)
+
+| metric 					    | option 		|
+|---------------------------------------------------|-------------------|
+| PSNR 						    | `calculate_psnr`  |
+| SSIM 						    | `calculate_ssim`  |
+| [DISTS](https://github.com/dingkeyan93/DISTS)     | `calculate_dists` |
+| [TOPIQ](https://github.com/chaofengc/IQA-PyTorch) | `calculate_topiq` |
+
 ### [supported augmentations](https://github.com/neosr-project/neosr/wiki/Configuration-Walkthrough#augmentations-aug_prob):
 
 | augmentation						| option	|
