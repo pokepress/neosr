@@ -1,5 +1,6 @@
 import copy
 from pathlib import Path
+from urllib import request
 
 import torch
 from torch import nn
@@ -259,7 +260,11 @@ class topiq_loss(nn.Module):
         self._init_linear(self.attn_pool)
 
         # load topiq_fr weights
-        model_path = Path(__file__).resolve().parent / "topiq_fr_weights.pth"
+        model_path = Path(__file__).parent / "topiq_fr_weights.pth"
+        if not model_path.exists():
+            url = "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/cfanet_fr_kadid_res50-2c4cc61d.pth?download=true"
+            request.urlretrieve(url, model_path)
+
         checkpoint = torch.load(model_path, map_location="cuda", weights_only=True)
         self.load_state_dict(checkpoint["params"], strict=True)
         self.eval()
