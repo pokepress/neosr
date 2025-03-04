@@ -231,14 +231,6 @@ class image(base):
         else:
             self.cri_dists = None
 
-        # topiq loss
-        if train_opt.get("topiq_opt"):
-            self.cri_topiq = build_loss(train_opt["topiq_opt"]).to(  # type: ignore[reportCallIssue,attr-defined]
-                self.device, memory_format=torch.channels_last, non_blocking=True
-            )
-        else:
-            self.cri_topiq = None
-
         # gan loss
         if train_opt.get("gan_opt"):
             self.cri_gan = build_loss(train_opt["gan_opt"]).to(  # type: ignore[reportCallIssue,attr-defined]
@@ -582,11 +574,6 @@ class image(base):
                 l_g_dists = self.cri_dists(self.output, self.gt)
                 l_g_total += l_g_dists
                 loss_dict["l_g_dists"] = l_g_dists
-            # topiq loss
-            if self.cri_topiq:
-                l_g_topiq = self.cri_topiq(self.output, self.gt)
-                l_g_total += l_g_topiq
-                loss_dict["l_g_topiq"] = l_g_topiq
             # ldl loss
             if self.cri_ldl:
                 l_g_ldl = self.cri_ldl(self.output, self.gt)

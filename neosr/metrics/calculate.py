@@ -7,7 +7,7 @@ from cv2.typing import MatLike
 from torch import Tensor
 
 from neosr.losses.dists_loss import dists_loss
-from neosr.losses.topiq_loss import topiq_loss
+from neosr.metrics.topiq import topiq
 from neosr.metrics.metric_util import reorder_image, to_y_channel
 from neosr.utils.img_util import img2tensor
 from neosr.utils.registry import METRIC_REGISTRY
@@ -233,5 +233,5 @@ def calculate_topiq(
         device = torch.device("cuda")
         img, img2 = img.to(device), img2.to(device)
 
-    loss = topiq_loss()  # type: ignore[reportCallIssue]
+    loss = topiq()  # type: ignore[reportCallIssue]
     return loss.forward(img, img2)

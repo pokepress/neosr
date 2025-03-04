@@ -145,7 +145,7 @@ class resnet_features(nn.Module):
 
 
 @LOSS_REGISTRY.register()
-class topiq_loss(nn.Module):
+class topiq(nn.Module):
     """Inference for TOP-IQ metric, proposed in:
     https://arxiv.org/abs/2308.03060
     Code adapted from:
