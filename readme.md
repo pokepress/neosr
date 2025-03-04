@@ -88,7 +88,6 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | [HMA](https://github.com/korouuuuu/HMA)							    | `hma`, `hma_medium`, `hma_large`				|
 | [MAN](https://github.com/icandle/MAN)								    | `man`, `man_tiny`, `man_light`				|
 | [light-SAFMN++](https://github.com/sunny2109/SAFMN/tree/main/AIS2024-RTSR)			    | `light_safmnpp`						|
-| [MoSR](https://github.com/umzi2/MoSR)								    | `mosr`, `mosr_t`						|
 | [GRFormer](https://github.com/sisrformer/GRFormer)						    | `grformer`, `grformer_medium`, `grformer_large`  |
 | [EIMN](https://github.com/liux520/EIMN)							    | `eimn`, `eimn_a`, `eimn_l`			   |
 | [LMLT](https://github.com/jwgdmkj/LMLT)					| `lmlt`, `lmlt_tiny`, `lmlt_large`		   |
