@@ -79,6 +79,8 @@ val_freq = 1000
 #[val.metrics.dists]
 #type = "calculate_dists"
 #better = "lower"
+#[val.metrics.topiq]
+#type = "calculate_topiq"
 
 [path]
 #pretrain_network_g = 'experiments\pretrain_g.pth'
