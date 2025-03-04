@@ -137,6 +137,7 @@ function neosr-convert {
 function neosr-update {
     Set-Location "$INSTALL_DIR"
     git pull --autostash
+    uv self update
     uv sync
 }
 '@

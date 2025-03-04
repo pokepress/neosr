@@ -18,18 +18,18 @@ classifiers = [
 ]
 
 dependencies = [
-    "einops>=0.8.0",
+    "einops>=0.8.1",
     "lmdb>=1.6.2",
-    "numpy>=2.2.2",
+    "numpy>=2.2.3",
     "onnx>=1.17.0",
     "onnxconverter-common>=1.14.0",
     "onnxruntime-gpu>=1.20.1",
     "opencv-python-headless>=4.11.0.86",
     "pywavelets>=1.8.0",
-    "scipy>=1.15.1",
-    "tb-nightly>=2.19.0a20250119",
-    "torch>=2.5.1",
-    "torchvision>=0.20.1",
+    "scipy>=1.15.2",
+    "tb-nightly>=2.20.0a20250304",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
     "tqdm>=4.67.1",
 ]
 
@@ -43,7 +43,7 @@ torchvision = { index = "pytorch" }
 
 [[tool.uv.index]]
 name = "pytorch"
-url = "https://download.pytorch.org/whl/cu124"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.ruff]

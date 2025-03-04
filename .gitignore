@@ -4,4 +4,5 @@ __pycache__/
 .mypy_cache/
 experiments/*
 options/tmp/
+neosr/losses/topiq_fr_weights.pth
 check.sh
