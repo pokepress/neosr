@@ -111,6 +111,7 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | arch										| option					   |
 |-------------------------------------------------------------------------------|--------------------------------------------------|
 | [ASID](https://github.com/saturnian77/ASID)					| `asid`, `asid_d8`				   |
+| [MoSRV2](https://github.com/umzi2/MoSRV2)					| `mosrv2`					   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):
