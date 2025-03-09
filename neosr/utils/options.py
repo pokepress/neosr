@@ -193,6 +193,7 @@ def parse_options(
             opt["deterministic"] = False
             seed = random.randint(1024, 10000)
             opt["manual_seed"] = seed
+            torch.utils.deterministic.fill_uninitialized_memory = False
             torch.backends.cudnn.benchmark = True
             torch.backends.cudnn.benchmark_limit = 0
             os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -206,6 +207,7 @@ def parse_options(
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
             torch.use_deterministic_algorithms(mode=True, warn_only=True)
+            torch.utils.deterministic.fill_uninitialized_memory = True
         set_random_seed(seed + opt["rank"])
 
         opt["auto_resume"] = args.auto_resume

@@ -1,13 +1,13 @@
+import warnings
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision.models import (
     EfficientNet_B7_Weights,
-    Inception_V3_Weights,
     ResNet101_Weights,
     VGG19_Weights,
     efficientnet_b7,
-    inception_v3,
     resnet101,
     vgg,
 )
@@ -16,19 +16,15 @@ from neosr.utils.registry import LOSS_REGISTRY
 
 
 class VGG(nn.Module):
-    def __init__(
-        self, requires_grad=False, s1_w=1.0, s2_w=1.0, s3_w=1.0, s4_w=1.0, s5_w=1.0
-    ):
+    def __init__(self, requires_grad=False, vgg_weights=None):
         super().__init__()
-
         vgg_pretrained_features = vgg.vgg19(weights=VGG19_Weights.DEFAULT).features
         vgg_pretrained_features.eval()
 
-        self.s1_w = s1_w
-        self.s2_w = s2_w
-        self.s3_w = s3_w
-        self.s4_w = s4_w
-        self.s5_w = s5_w
+        if vgg_weights is None:
+            self.vgg_weights = (0.5, 0.5, 1.0, 1.0, 1.0)
+        else:
+            self.vgg_weights = vgg_weights
 
         self.stage1 = nn.Sequential()
         self.stage2 = nn.Sequential()
@@ -65,19 +61,19 @@ class VGG(nn.Module):
         h = (x - self.mean) / self.std
 
         h = self.stage1(h)
-        h_relu1_2 = h * self.s1_w
+        h_relu1_2 = h * self.vgg_weights[0]
 
         h = self.stage2(h)
-        h_relu2_2 = h * self.s2_w
+        h_relu2_2 = h * self.vgg_weights[1]
 
         h = self.stage3(h)
-        h_relu3_3 = h * self.s3_w
+        h_relu3_3 = h * self.vgg_weights[2]
 
         h = self.stage4(h)
-        h_relu4_3 = h * self.s4_w
+        h_relu4_3 = h * self.vgg_weights[3]
 
         h = self.stage5(h)
-        h_relu5_3 = h * self.s5_w
+        h_relu5_3 = h * self.vgg_weights[4]
 
         # get the features of each layer
         return [h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
@@ -108,64 +104,10 @@ class ResNet(nn.Module):
             "std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)
         )
 
-        self.chns = [64, 256, 512, 1024]  #
+        self.chns = [64, 256, 512, 1024]
 
     def get_features(self, x):
         h = (x - self.mean) / self.std
-        h = self.stage1(h)
-        h_relu1_2 = h
-        h = self.stage2(h)
-        h_relu2_2 = h
-        h = self.stage3(h)
-        h_relu3_3 = h
-        h = self.stage4(h)
-        h_relu4_3 = h
-        return [h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3]  #
-
-    def forward(self, x):
-        return self.get_features(x)
-
-
-class Inception(nn.Module):
-    def __init__(self, requires_grad=False):
-        super().__init__()
-        inception = inception_v3(weights=Inception_V3_Weights.DEFAULT)
-
-        self.stage1 = nn.Sequential(
-            inception.Conv2d_1a_3x3, inception.Conv2d_2a_3x3, inception.Conv2d_2b_3x3
-        )
-        self.stage2 = nn.Sequential(
-            inception.maxpool1, inception.Conv2d_3b_1x1, inception.Conv2d_4a_3x3
-        )
-        self.stage3 = nn.Sequential(
-            inception.maxpool2,
-            inception.Mixed_5b,
-            inception.Mixed_5c,
-            inception.Mixed_5d,
-        )
-        self.stage4 = nn.Sequential(
-            inception.Mixed_6a,
-            inception.Mixed_6b,
-            inception.Mixed_6c,
-            inception.Mixed_6d,
-            inception.Mixed_6e,
-        )
-        if not requires_grad:
-            for param in self.parameters():
-                param.requires_grad = False
-
-        self.chns = [64, 192, 288, 768]
-
-        self.register_buffer(
-            "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1)
-        )
-        self.register_buffer(
-            "std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)
-        )
-
-    def get_features(self, x):
-        h = (x - self.mean) / self.std
-        # h = (x-0.5)*2
         h = self.stage1(h)
         h_relu1_2 = h
         h = self.stage2(h)
@@ -217,7 +159,85 @@ class EffNet(nn.Module):
         h_relu4_3 = h
         h = self.stage5(h)
         h_relu5_3 = h
-        return [h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]  #
+        return [h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
+
+    def forward(self, x):
+        return self.get_features(x)
+
+
+class dinov2(nn.Module):
+    """
+    DINOv2 backend, developed by musl from the neosr-project: https://github.com/neosr-project/neosr
+    """
+
+    def __init__(self, layers=None, weights=None):
+        super().__init__()
+
+        # load model and suppress xformers dependency warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.model = torch.hub.load(
+                "facebookresearch/dinov2",
+                "dinov2_vitb14",
+                trust_repo="check",
+                verbose=False,
+            )
+        self.model.eval()
+
+        if layers is None:
+            layers = [0, 1, 2, 3, 4, 5, 6, 7]
+        if weights is None:
+            weights = (1.0, 0.5, 0.5, 1.0, 0.5, 0.5, 1.0, 0.1)
+
+        self.layers = layers
+        self.chns = [768] * len(self.layers)
+
+        if len(weights) != len(self.layers):
+            msg = "Number of layer weights must match number of layers"
+            raise ValueError(msg)
+
+        self.register_buffer(
+            "layer_weights", torch.tensor(weights, dtype=torch.float32).view(-1, 1, 1)
+        )
+
+        # imagenet norm values
+        self.register_buffer(
+            "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1)
+        )
+        self.register_buffer(
+            "std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)
+        )
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def adapt_size(self, dim):
+        return ((dim + 13) // 14) * 14
+
+    def get_features(self, x):
+        x = (x - self.mean) / self.std
+        # pad since embedded patch expects multiples of 14
+        _, _, H, W = x.shape
+        target_h = self.adapt_size(H)
+        target_w = self.adapt_size(W)
+        pad_h = target_h - H
+        pad_w = target_w - W
+
+        if pad_h != 0 or pad_w != 0:
+            x = F.pad(
+                x,
+                (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2),
+                mode="reflect",
+            )
+
+        # extract features
+        features = self.model.get_intermediate_layers(
+            x, n=self.layers, reshape=True, return_class_token=False
+        )
+        return [
+            feat * weight
+            for feat, weight in zip(features, self.layer_weights, strict=False)
+        ]
 
     def forward(self, x):
         return self.get_features(x)
@@ -225,49 +245,42 @@ class EffNet(nn.Module):
 
 @LOSS_REGISTRY.register()
 class fdl_loss(nn.Module):
+    """
+    Adapted from: https://github.com/eezkni/FDL
+    """
+
     def __init__(
         self,
         patch_size=4,
         stride=1,
         num_proj=24,
         model="vgg",
-        s1_w=0.5,
-        s2_w=0.5,
-        s3_w=1.0,
-        s4_w=1.0,
-        s5_w=1.0,
+        vgg_weights=None,
+        dino_layers=None,
+        dino_weights=None,
         phase_weight=1.0,
         loss_weight=1.0,
     ):
-        """
-        Adapted from: https://github.com/eezkni/FDL
-
-        Args:
-        ---
-            patch_size (int), stride (int), num_proj (int): SWD slice parameters.
-            model (str): feature extractor, supports VGG, ResNet, Inception, EffNet.
-            phase_weight (float): weight for phase branch.
-            loss_weight (float): loss weight.
-        """
-
         super().__init__()
+        self.model_name = model
         model = model.lower()
 
         if model == "resnet":
             self.model = ResNet()
         elif model == "effnet":
             self.model = EffNet()
-        elif model == "inception":
-            self.model = Inception()
         elif model == "vgg":
-            self.model = VGG(s1_w=s1_w, s2_w=s2_w, s3_w=s3_w, s4_w=s4_w, s5_w=s5_w)
+            self.model = VGG(vgg_weights=vgg_weights)
+        elif model == "dinov2":
+            self.model = dinov2(dino_layers, dino_weights)
         else:
-            msg = "Invalid model type! Valid models: VGG, Inception, EffNet, ResNet"
+            msg = "Invalid model type! Valid models: VGG, EffNet, ResNet or DINOv2"
             raise NotImplementedError(msg)
 
         self.phase_weight = phase_weight
         self.loss_weight = loss_weight
         self.stride = stride
+
         for i in range(len(self.model.chns)):
             rand = torch.randn(
                 num_proj, self.model.chns[i], patch_size, patch_size, device="cuda"
@@ -318,5 +331,4 @@ class fdl_loss(nn.Module):
         score = sum(score)
         # decrease magnitude to balance with other losses
         score = score.mean() * 0.01
-
         return score * self.loss_weight
