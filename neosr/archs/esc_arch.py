@@ -14,11 +14,20 @@ from neosr.utils.registry import ARCH_REGISTRY
 upscale, __ = net_opt()
 
 
-def attention(q: Tensor, k: Tensor, v: Tensor, bias: Tensor) -> Tensor:
-    score = q @ k.transpose(-2, -1) / q.shape[-1] ** 0.5
-    score = score + bias
-    score = F.softmax(score, dim=-1)
-    return score @ v
+def attention(
+    q: Tensor, k: Tensor, v: Tensor, bias: Tensor, sdpa: bool = False
+) -> Tensor:
+    if sdpa:
+        with torch.no_grad():
+            score = nn.functional.scaled_dot_product_attention(
+                q, k, v, attn_mask=bias, is_causal=False
+            )
+    else:
+        score = q @ k.transpose(-2, -1) / q.shape[-1] ** 0.5
+        score = score + bias
+        score = F.softmax(score, dim=-1)
+        score = score @ v
+    return score
 
 
 def apply_rpe(table: Tensor, window_size: int):
@@ -248,6 +257,7 @@ class WindowAttention(nn.Module):
         window_size: int,
         num_heads: int,
         attn_func=None,
+        sdpa: bool = False,
         deployment=False,
     ):
         super().__init__()
@@ -261,6 +271,7 @@ class WindowAttention(nn.Module):
         self.to_out = nn.Conv2d(dim, dim, 1, 1, 0)
 
         self.attn_func = attn_func
+        self.sdpa = sdpa
         self.is_deployment = deployment
         self.relative_position_bias = nn.Parameter(
             torch.randn(
@@ -336,7 +347,7 @@ class WindowAttention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         if self.is_deployment:
-            out = self.attn_func(q, k, v, score_mod=self.get_rpe)
+            out = self.attn_func(q, k, v, score_mod=self.get_rpe, sdpa=self.sdpa)
         else:
             bias = self.relative_position_bias[self.rpe_idxs[:, 0], self.rpe_idxs[:, 1]]
             bias = bias.reshape(
@@ -345,7 +356,7 @@ class WindowAttention(nn.Module):
                 self.window_size[0] * self.window_size[1],
                 self.window_size[0] * self.window_size[1],
             )
-            out = self.attn_func(q, k, v, bias)
+            out = self.attn_func(q, k, v, bias, sdpa=self.sdpa)
 
         out = win_to_feat(out, self.window_size, h_div, w_div)
         return self.to_out(out.to(dtype)[:, :, :h, :w])
@@ -361,6 +372,7 @@ class Block(nn.Module):
         num_heads: int,
         exp_ratio: float,
         attn_func=None,
+        sdpa: bool = False,
         is_fp: bool = False,
         layer_norm: bool = False,
         deployment: bool = False,
@@ -374,7 +386,9 @@ class Block(nn.Module):
         else:
             self.proj = ConvFFN(dim, 3, 2)
         self.ln_attn = LayerNorm(dim)
-        self.attn = WindowAttention(dim, window_size, num_heads, attn_func, deployment)
+        self.attn = WindowAttention(
+            dim, window_size, num_heads, attn_func, sdpa, deployment
+        )
 
         if is_fp:
             self.lns = nn.ModuleList([LayerNorm(dim) for _ in range(conv_blocks)])
@@ -474,6 +488,7 @@ class esc(nn.Module):
         num_heads: int = 4,
         upscaling_factor: int = upscale,
         exp_ratio: float = 1.25,
+        sdpa: bool = False,
         is_fp: bool = False,
         use_dysample: bool = False,
         realsr: bool = False,
@@ -525,6 +540,7 @@ class esc(nn.Module):
                 num_heads,
                 exp_ratio,
                 attn_func,
+                sdpa,
                 is_fp,
                 realsr,  # layer_norm
                 deployment,
