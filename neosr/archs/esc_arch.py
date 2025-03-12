@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from math import log2
 
 import torch
 import torch.nn as nn
@@ -176,7 +177,6 @@ class DecomposedConvolutionalAttention(nn.Module):
     def __init__(self, pdim: int):
         super().__init__()
         self.pdim = pdim
-
         self.dynamic_kernel_size = 3
         self.proj = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
@@ -207,9 +207,6 @@ class DecomposedConvolutionalAttention(nn.Module):
         x1 = F.conv2d(x1, kernel + lk_spatial, padding=13 // 2, groups=b * c)
         x1 = rearrange(x1, "1 (b c) h w -> b c h w", b=b, c=c)
         return torch.cat([x1, x2], dim=1)
-
-    def extra_repr(self):
-        return f"pdim={self.pdim}"
 
 
 class DecomposedConvolutionalAttentionWrapper(nn.Module):
@@ -372,7 +369,10 @@ class Block(nn.Module):
         self.is_fp = is_fp
         self.layer_norm = layer_norm
         self.ln_proj = LayerNorm(dim)
-        self.proj = ConvFFN(dim, 3, 2)
+        if is_fp:
+            self.proj = ConvFFN(dim, 3, 1.5)
+        else:
+            self.proj = ConvFFN(dim, 3, 2)
         self.ln_attn = LayerNorm(dim)
         self.attn = WindowAttention(dim, window_size, num_heads, attn_func, deployment)
 
@@ -484,6 +484,7 @@ class esc(nn.Module):
 
         self.is_fp = is_fp
         self.realsr = realsr
+        self.upscaling_factor = upscaling_factor
         self.proj = nn.Conv2d(3, dim, 3, 1, 1)
         self.last = nn.Conv2d(dim, dim, 3, 1, 1)
 
@@ -531,7 +532,9 @@ class esc(nn.Module):
             for _ in range(n_blocks)
         ])
 
-        if realsr:
+        if not realsr:
+            self.to_img = nn.Conv2d(dim, 3 * upscaling_factor**2, 3, 1, 1)
+        else:
             if use_dysample:
                 self.to_img = DySample(
                     dim,  # Cin
@@ -542,15 +545,17 @@ class esc(nn.Module):
                 )
             else:
                 # Same as RealESRGAN and SwinIR-Real
-                self.to_img = nn.Sequential(
-                    nn.UpsamplingNearest2d(scale_factor=2),
-                    nn.Conv2d(dim, dim, 3, 1, 1),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.UpsamplingNearest2d(scale_factor=2),
-                    nn.Conv2d(dim, dim, 3, 1, 1),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(dim, 3, 3, 1, 1),
-                )
+                layers = []
+                num_upscales = int(log2(self.upscaling_factor))
+                for _ in range(num_upscales):
+                    layers.extend([
+                        nn.Upsample(scale_factor=2, mode="nearest"),
+                        nn.Conv2d(dim, dim, 3, 1, 1),
+                        nn.LeakyReLU(0.2, inplace=True),
+                    ])
+                layers.append(nn.Conv2d(dim, 3, 3, 1, 1))
+                self.to_img = nn.Sequential(*layers)
+
             self.skip = nn.Sequential(
                 nn.Conv2d(3, dim * 2, 1, 1, 0),
                 nn.Conv2d(
@@ -559,9 +564,6 @@ class esc(nn.Module):
                 nn.LeakyReLU(0.2, inplace=True),
                 nn.Conv2d(dim * 2, dim, 1, 1, 0),
             )
-        else:
-            self.to_img = nn.Conv2d(dim, 3 * upscaling_factor**2, 3, 1, 1)
-            self.upscaling_factor = upscaling_factor
 
     @torch.no_grad()
     def convert(self):
@@ -612,4 +614,4 @@ def esc_fp(**kwargs):
 
 @ARCH_REGISTRY.register()
 def esc_large(**kwargs):
-    return esc(n_blocks=10, exp_ratio=2.0, realsr=True, **kwargs)
+    return esc(n_blocks=10, exp_ratio=2.0, **kwargs)
