@@ -488,10 +488,10 @@ class esc(nn.Module):
         num_heads: int = 4,
         upscaling_factor: int = upscale,
         exp_ratio: float = 1.25,
-        sdpa: bool = False,
+        sdpa: bool = True,
         is_fp: bool = False,
-        use_dysample: bool = False,
-        realsr: bool = False,
+        use_dysample: bool = True,
+        realsr: bool = True,
         deployment: bool = False,
         do_compile: bool = False,
     ):
@@ -624,7 +624,7 @@ def esc_light(**kwargs):
 
 @ARCH_REGISTRY.register()
 def esc_fp(**kwargs):
-    return esc(dim=48, num_heads=3, is_fp=True, **kwargs)
+    return esc(dim=48, num_heads=3, is_fp=True, realsr=False, **kwargs)
 
 
 @ARCH_REGISTRY.register()

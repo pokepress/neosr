@@ -90,8 +90,6 @@ val_freq = 1000
 type = "esc"
 #type = "esc_light"
 #type = "esc_large"
-realsr = true
-use_dysample = true
 
 [network_d]
 type = "metagan"

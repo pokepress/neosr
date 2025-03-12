@@ -17,8 +17,6 @@ dataroot_lq = 'C:\datasets\val\'
 type = "esc"
 #type = "esc_light"
 #type = "esc_large"
-#realsr = true
-#use_dysample = true
 #deployment = true
 #do_compile = true
 
