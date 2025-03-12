@@ -101,6 +101,7 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 | [NinaSR](https://github.com/Coloquinte/torchSR/blob/main/doc/NinaSR.md)	| `ninasr`, `ninasr_b0`, `ninasr_b2`		   |
 | [RCAN](https://github.com/yulunzhang/RCAN)					| `rcan`					   |
 | [MoESR](https://github.com/umzi2/MoESR)					| `moesr`					   |
+| [ASID](https://github.com/saturnian77/ASID)					| `asid`, `asid_d8`				   |
 
 > [!NOTE]
 > For all arch-specific parameters, [read the wiki](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options).
@@ -109,8 +110,8 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 
 | arch										| option					   |
 |-------------------------------------------------------------------------------|--------------------------------------------------|
-| [ASID](https://github.com/saturnian77/ASID)					| `asid`, `asid_d8`				   |
 | [MoSRV2](https://github.com/umzi2/MoSRV2)					| `mosrv2`					   |
+| [ESC](https://github.com/dslisleedh/ESC)					| `esc`, `esc_fp`, `esc_large`			   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):

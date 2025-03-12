@@ -135,8 +135,8 @@ loss_weight = 1.0
 
 [train.fdl_opt]
 type = "fdl_loss"
-model = "vgg" # "resnet", "effnet", "inception"
-loss_weight = 0.5
+model = "dinov2" # "vgg", "resnet", "effnet"
+loss_weight = 1.0
 
 [train.gan_opt]
 type = "gan_loss"

@@ -1,5 +1,5 @@
 
-name = "train_grformer"
+name = "train_esc"
 model_type = "image"
 scale = 4
 use_amp = true
@@ -12,7 +12,7 @@ fast_matmul = true
 type = "paired"
 dataroot_gt = 'C:\datasets\gt\'
 dataroot_lq = 'C:\datasets\lq\'
-patch_size = 32
+patch_size = 64
 batch_size = 8
 #accumulate = 1
 augmentation = [ "none", "mixup", "cutmix", "resizemix", "cutblur" ]
@@ -41,9 +41,11 @@ val_freq = 1000
 #pretrain_network_d = 'experiments\pretrain_d.pth'
 
 [network_g]
-type = "grformer"
-#type = "grformer_medium"
-#type = "grformer_large"
+type = "esc"
+#type = "esc_light"
+#type = "esc_large"
+realsr = true
+use_dysample = true
 
 [network_d]
 type = "metagan"
@@ -60,7 +62,7 @@ wavelet_init = 80000
 
 [train.optim_g]
 type = "adan_sf"
-lr = 1e-3
+lr = 5e-4
 betas = [ 0.98, 0.92, 0.99 ]
 weight_decay = 0.01
 schedule_free = true

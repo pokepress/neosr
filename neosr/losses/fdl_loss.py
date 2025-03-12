@@ -170,19 +170,22 @@ class dinov2(nn.Module):
     DINOv2 backend, developed by musl from the neosr-project: https://github.com/neosr-project/neosr
     """
 
-    def __init__(self, layers=None, weights=None):
+    def __init__(self, layers=None, weights=None, norm=False):
         super().__init__()
 
         # load model and suppress xformers dependency warning
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.model = torch.hub.load(
-                "facebookresearch/dinov2",
-                "dinov2_vitb14",
-                trust_repo="check",
-                verbose=False,
+            self.model = (
+                torch.hub.load(
+                    "facebookresearch/dinov2",
+                    "dinov2_vitb14",
+                    trust_repo="check",
+                    verbose=False,
+                )
+                .to("cuda", memory_format=torch.channels_last, non_blocking=True)
+                .eval()
             )
-        self.model.eval()
 
         if layers is None:
             layers = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -200,13 +203,15 @@ class dinov2(nn.Module):
             "layer_weights", torch.tensor(weights, dtype=torch.float32).view(-1, 1, 1)
         )
 
-        # imagenet norm values
-        self.register_buffer(
-            "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1)
-        )
-        self.register_buffer(
-            "std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)
-        )
+        self.norm = norm
+        if self.norm:
+            # imagenet norm values
+            self.register_buffer(
+                "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1)
+            )
+            self.register_buffer(
+                "std", torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)
+            )
 
         for param in self.parameters():
             param.requires_grad = False
@@ -215,8 +220,9 @@ class dinov2(nn.Module):
         return ((dim + 13) // 14) * 14
 
     def get_features(self, x):
-        x = (x - self.mean) / self.std
-        # pad since embedded patch expects multiples of 14
+        if self.norm:
+            x = (x - self.mean) / self.std
+        # pad because embedded patch expects multiples of 14
         _, _, H, W = x.shape
         target_h = self.adapt_size(H)
         target_w = self.adapt_size(W)
@@ -258,6 +264,7 @@ class fdl_loss(nn.Module):
         vgg_weights=None,
         dino_layers=None,
         dino_weights=None,
+        dino_norm=False,
         phase_weight=1.0,
         loss_weight=1.0,
     ):
@@ -272,7 +279,7 @@ class fdl_loss(nn.Module):
         elif model == "vgg":
             self.model = VGG(vgg_weights=vgg_weights)
         elif model == "dinov2":
-            self.model = dinov2(dino_layers, dino_weights)
+            self.model = dinov2(dino_layers, dino_weights, dino_norm)
         else:
             msg = "Invalid model type! Valid models: VGG, EffNet, ResNet or DINOv2"
             raise NotImplementedError(msg)
@@ -330,5 +337,8 @@ class fdl_loss(nn.Module):
 
         score = sum(score)
         # decrease magnitude to balance with other losses
-        score = score.mean() * 0.01
+        if self.model_name != "dinov2":
+            score = score.mean() * 0.01
+        else:
+            score = score.mean()
         return score * self.loss_weight
