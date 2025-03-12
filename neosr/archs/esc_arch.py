@@ -603,19 +603,18 @@ class esc(nn.Module):
             return F.pixel_shuffle(feat, self.upscaling_factor) + F.interpolate(
                 x, scale_factor=self.upscaling_factor, mode="bicubic"
             )
-        if self.realsr:
-            for block in self.blocks:
-                feat = block(feat, plk_filter=plk_filter)
-            feat = self.last(feat) + skip + self.skip(x)
-            return self.to_img(feat)
 
         for block in self.blocks:
             feat = block(feat, plk_filter=plk_filter)
-        feat = self.last(feat) + skip
-        x = self.to_img(feat) + torch.repeat_interleave(
-            x, self.upscaling_factor**2, dim=1
+        feat_ = self.last(feat) + skip
+
+        if self.realsr:
+            return self.to_img(feat_ + self.skip(x))
+        return F.pixel_shuffle(
+            self.to_img(feat_)
+            + torch.repeat_interleave(x, self.upscaling_factor**2, dim=1),
+            self.upscaling_factor,
         )
-        return F.pixel_shuffle(x, self.upscaling_factor)
 
 
 @ARCH_REGISTRY.register()
