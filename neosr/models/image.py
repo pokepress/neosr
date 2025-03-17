@@ -264,6 +264,9 @@ class image(base):
         # gradient clipping
         self.gradclip = self.opt["train"].get("grad_clip", True)
 
+        # inference clamp
+        self.clamp = self.opt["train"].get("clamp", True)
+
         # log sam
         if self.sam is not None:
             logger.info("Sharpness-Aware Minimization enabled.")
@@ -496,10 +499,12 @@ class image(base):
                     self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
                 else:
                     self.output, self.gt = self.eco_strategy(current_iter)
-                    self.gt = torch.clamp(self.gt, 1 / 255, 1)
+                    if self.clamp:
+                        self.gt = torch.clamp(self.gt, 1 / 255, 1)
             else:
                 self.output = self.net_g(self.lq)  # type: ignore[reportCallIssue,operator]
-            self.output = torch.clamp(self.output, 1 / 255, 1)
+            if self.clamp:
+                self.output = torch.clamp(self.output, 1 / 255, 1)
 
             # lq match
             if self.match_lq_colors:

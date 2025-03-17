@@ -4,6 +4,7 @@ import time
 from typing import Any
 
 from neosr.utils.dist_util import get_dist_info, master_only
+from neosr.utils.misc import tc
 
 initialized_logger: dict[Any, Any] = {}
 
@@ -142,7 +143,7 @@ class MessageLogger:
         current_iter: int = int(log_vars.pop("iter")) // self.accumulate
         lrs: list[Any] = log_vars.pop("lrs")
 
-        message = f"[ epoch:{epoch:4d} ] [ iter:{current_iter:7,d} ]"
+        message = f"[ epoch:{epoch:4d} ] {tc.light_green}[ iter:{current_iter:7,d} ]{tc.end}"
 
         # time and estimated time
         if "time" in log_vars:

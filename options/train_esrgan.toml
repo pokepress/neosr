@@ -48,6 +48,7 @@ type = "metagan"
 
 [train]
 ema = 0.999
+clamp = false
 wavelet_guided = true
 wavelet_init = 80000
 #sam = "fsam"
