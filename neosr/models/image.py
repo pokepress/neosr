@@ -121,8 +121,10 @@ class image(base):
         self.aug = self.opt["datasets"]["train"].get("augmentation", None)
         self.aug_prob = self.opt["datasets"]["train"].get("aug_prob", None)
 
-        # validation options
-        self.tile = self.opt["val"].get("tile", -1)
+        # validation tile option
+        self.tile = (
+            self.opt["val"].get("tile", -1) if self.opt.get("val") is not None else -1
+        )
 
         # for amp
         self.use_amp = self.opt.get("use_amp", False) is True
@@ -285,7 +287,7 @@ class image(base):
         if self.sam is not None and self.use_amp is True:
             # Closure not supported:
             # https://github.com/pytorch/pytorch/blob/main/torch/amp/grad_scaler.py#L384
-            msg = f"""{tc.red}SAM does not support GradScaler. As a result, AMP could cause
+            msg = f"""{tc.light_yellow}SAM does not support GradScaler. As a result, AMP could cause
                       instability with it. Disable AMP if you get undesirable results.{tc.end}"""
             logger.warning(msg)
         if self.sam is not None and self.accum_iters > 1:
@@ -399,8 +401,6 @@ class image(base):
                 msg = f"{tc.red}SAM type {self.sam} not supported yet.{tc.end}"
                 logger.error(msg)
                 sys.exit(1)
-            else:
-                pass
 
         # optimizer d
         if self.net_d is not None:
@@ -758,7 +758,9 @@ class image(base):
     def tile_val(self) -> Tensor:
         b, c, h, w = self.lq.shape
         device = self.lq.device
-        tile = self.opt["val"].get("tile", -1)
+        tile = (
+            self.opt["val"].get("tile", -1) if self.opt.get("val") is not None else -1
+        )
         scale = self.opt["scale"]
 
         # pad
@@ -768,17 +770,13 @@ class image(base):
 
         # split
         tiles = rearrange(
-            img_pad.cpu(),
-            "b c (h th) (w tw) -> (b h w) c th tw",
-            th=tile,
-            tw=tile,
+            img_pad.cpu(), "b c (h th) (w tw) -> (b h w) c th tw", th=tile, tw=tile
         )
 
         # pre-allocate on cpu
         total_tiles = tiles.shape[0]
         processed = torch.zeros(
-            (total_tiles, c, tile * scale, tile * scale),
-            device="cpu",
+            (total_tiles, c, tile * scale, tile * scale), device="cpu"
         )
         model = (
             self.net_g_ema if (hasattr(self, "ema") and self.ema > 0) else self.net_g
