@@ -138,6 +138,8 @@ class dists_loss(nn.Module):
     def forward(self, x: Tensor, y: Tensor) -> Tensor:
         feats0 = self.forward_once(x)
         feats1 = self.forward_once(y)
+        dist1 = 0
+        dist2 = 0
         c1 = 1e-6
         c2 = 1e-6
 
@@ -145,13 +147,11 @@ class dists_loss(nn.Module):
         alpha = torch.split(self.alpha / w_sum, self.chns, dim=1)
         beta = torch.split(self.beta / w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
-            dist1 = 0
             x_mean = feats0[k].mean([2, 3], keepdim=True)
             y_mean = feats1[k].mean([2, 3], keepdim=True)
             S1 = (2 * x_mean * y_mean + c1) / (x_mean**2 + y_mean**2 + c1)
             dist1 = dist1 + (alpha[k] * S1).sum(1, keepdim=True)
 
-            dist2 = 0
             x_var = ((feats0[k] - x_mean) ** 2).mean([2, 3], keepdim=True)
             y_var = ((feats1[k] - y_mean) ** 2).mean([2, 3], keepdim=True)
             xy_cov = (feats0[k] * feats1[k]).mean(
