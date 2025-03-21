@@ -65,6 +65,7 @@ def calculate_psnr(
     return 10.0 * np.log10(255.0 * 255.0 / mse)
 
 
+@staticmethod
 def _ssim(img: np.ndarray | MatLike, img2: np.ndarray | MatLike) -> float:
     """Calculate SSIM (structural similarity) for one channel images.
 

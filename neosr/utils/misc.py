@@ -166,6 +166,7 @@ def check_resume(opt: dict[str, Any], resume_iter: int) -> None:
                 # print(f'Set {param_key} to params')
 
 
+@staticmethod
 def sizeof_fmt(size: int, suffix: str = "B") -> str:
     """Get human readable file size.
 

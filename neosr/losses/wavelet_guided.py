@@ -103,6 +103,7 @@ def prep_filt_sfb2d(
     return g0_col, g1_col, g0_row, g1_row
 
 
+@staticmethod
 def afb1d_atrous(
     x: Tensor, h0: Tensor, h1: Tensor, dim: int = -1, dilation: int = 1
 ) -> Tensor:

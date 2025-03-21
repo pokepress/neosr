@@ -864,7 +864,7 @@ class image(base):
         metric_data = {}
 
         for _idx, val_data in enumerate(dataloader):
-            img_name = Path(Path(val_data["lq_path"][0]).name).stem
+            img_name = Path(val_data["lq_path"][0]).stem
             self.feed_data(val_data)
 
             model = (

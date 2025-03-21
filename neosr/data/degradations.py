@@ -21,6 +21,7 @@ rng = rng()
 # --------------------------- util functions --------------------------- #
 
 
+@staticmethod
 def sigma_matrix2(sig_x, sig_y, theta):
     """Calculate the rotated sigma matrix (two dimensional matrix).
 
@@ -66,6 +67,7 @@ def mesh_grid(kernel_size):
     return xy, xx, yy
 
 
+@staticmethod
 def pdf2(sigma_matrix, grid):
     """Calculate PDF of the bivariate Gaussian distribution.
 

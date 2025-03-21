@@ -147,18 +147,10 @@ def resizemix(
 
     # resize
     img_gt_resize = torch.clamp(
-        F.interpolate(
-            img_gt_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic", antialias=True
-        ),
-        0,
-        1,
+        F.interpolate(img_gt_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic"), 0, 1
     )
     img_lq_resize = torch.clamp(
-        F.interpolate(
-            img_lq_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic", antialias=True
-        ),
-        0,
-        1,
+        F.interpolate(img_lq_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic"), 0, 1
     )
 
     # mix
@@ -257,11 +249,7 @@ def apply_augment(
     modes = ["bilinear", "bicubic"]
     if scale > 1:
         img_lq = torch.clamp(
-            F.interpolate(
-                img_lq, scale_factor=scale, mode=random.choice(modes), antialias=True
-            ),
-            0,
-            1,
+            F.interpolate(img_lq, scale_factor=scale, mode=random.choice(modes)), 0, 1
         )
 
     if rng.random() < multi_prob:  # type: ignore[attr-defined]
@@ -294,17 +282,11 @@ def apply_augment(
             img_gt, img_lq = resizemix(img_gt, img_lq)
         elif "cutblur" in aug:
             img_gt, img_lq = cutblur(img_gt, img_lq)
-        else:
-            pass
 
     # back to original resolution
     if scale > 1:
         img_lq = torch.clamp(
-            F.interpolate(
-                img_lq, scale_factor=1 / scale, mode="bicubic", antialias=True
-            ),
-            0,
-            1,
+            F.interpolate(img_lq, scale_factor=1 / scale, mode="bicubic"), 0, 1
         )
 
     return img_gt, img_lq

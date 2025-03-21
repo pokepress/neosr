@@ -242,7 +242,7 @@ class dinov2(nn.Module):
         )
         return [
             feat * weight
-            for feat, weight in zip(features, self.layer_weights, strict=False)
+            for feat, weight in zip(features, self.layer_weights, strict=True)
         ]
 
     def forward(self, x):
