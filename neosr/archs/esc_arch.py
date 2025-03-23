@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 from torch import Tensor
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.attention.flex_attention import flex_attention
 
 from neosr.archs.arch_util import DySample, net_opt
@@ -14,24 +15,15 @@ from neosr.utils.registry import ARCH_REGISTRY
 upscale, __ = net_opt()
 
 
-def attention(
-    q: Tensor, k: Tensor, v: Tensor, bias: Tensor, sdpa: bool = False
-) -> Tensor:
-    if sdpa:
-        with torch.no_grad():
-            score = nn.functional.scaled_dot_product_attention(
-                q, k, v, attn_mask=bias, is_causal=False
-            )
-    else:
-        score = q @ k.transpose(-2, -1) / q.shape[-1] ** 0.5
-        score = score + bias
-        score = F.softmax(score, dim=-1)
-        score = score @ v
-    return score
+def attention(q: Tensor, k: Tensor, v: Tensor, bias: Tensor) -> Tensor:
+    score = q @ k.transpose(-2, -1) / q.shape[-1] ** 0.5
+    score = score + bias
+    score = F.softmax(score, dim=-1)
+    return score @ v
 
 
 def apply_rpe(table: Tensor, window_size: int):
-    def bias_mod(score: Tensor, h: int, q_idx: int, kv_idx: int):
+    def bias_mod(score: Tensor, b: int, h: int, q_idx: int, kv_idx: int):  # noqa: ARG001
         q_h = q_idx // window_size
         q_w = q_idx % window_size
         k_h = kv_idx // window_size
@@ -252,13 +244,7 @@ class ConvFFN(nn.Module):
 
 class WindowAttention(nn.Module):
     def __init__(
-        self,
-        dim: int,
-        window_size: int,
-        num_heads: int,
-        attn_func=None,
-        sdpa: bool = False,
-        deployment=False,
+        self, dim: int, window_size: int, num_heads: int, attn_func, attn_type: str
     ):
         super().__init__()
         self.dim = dim
@@ -271,18 +257,14 @@ class WindowAttention(nn.Module):
         self.to_out = nn.Conv2d(dim, dim, 1, 1, 0)
 
         self.attn_func = attn_func
-        self.sdpa = sdpa
-        self.is_deployment = deployment
+        self.attn_type = attn_type
         self.relative_position_bias = nn.Parameter(
             torch.randn(
                 num_heads, (2 * window_size[0] - 1) * (2 * window_size[1] - 1)
             ).to(torch.float32)
             * 0.001
         )
-        if self.is_deployment:
-            self.relative_position_bias = self.relative_position_bias.requires_grad_(
-                requires_grad=False
-            )
+        if self.attn_type == "flex":
             self.get_rpe = apply_rpe(self.relative_position_bias, window_size[0])
         else:
             self.rpe_idxs = self.create_table_idxs(window_size[0], num_heads)
@@ -346,9 +328,9 @@ class WindowAttention(nn.Module):
         qkv = feat_to_win(qkv, self.window_size, self.num_heads)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        if self.is_deployment:
-            out = self.attn_func(q, k, v, score_mod=self.get_rpe, sdpa=self.sdpa)
-        else:
+        if self.attn_type == "flex":
+            out = self.attn_func(q, k, v, score_mod=self.get_rpe)
+        elif self.attn_type == "sdpa":
             bias = self.relative_position_bias[self.rpe_idxs[:, 0], self.rpe_idxs[:, 1]]
             bias = bias.reshape(
                 1,
@@ -356,7 +338,20 @@ class WindowAttention(nn.Module):
                 self.window_size[0] * self.window_size[1],
                 self.window_size[0] * self.window_size[1],
             )
-            out = self.attn_func(q, k, v, bias, sdpa=self.sdpa)
+            with sdpa_kernel(backends=[SDPBackend.EFFICIENT_ATTENTION]):
+                out = self.attn_func(q, k, v, attn_mask=bias, is_causal=False)
+        elif self.attn_type == "naive":
+            bias = self.relative_position_bias[self.rpe_idxs[:, 0], self.rpe_idxs[:, 1]]
+            bias = bias.reshape(
+                1,
+                self.num_heads,
+                self.window_size[0] * self.window_size[1],
+                self.window_size[0] * self.window_size[1],
+            )
+            out = self.attn_func(q, k, v, bias)
+        else:
+            msg = f"Attention type {self.attn_type} is not supported."
+            raise NotImplementedError(msg)
 
         out = win_to_feat(out, self.window_size, h_div, w_div)
         return self.to_out(out.to(dtype)[:, :, :h, :w])
@@ -372,10 +367,9 @@ class Block(nn.Module):
         num_heads: int,
         exp_ratio: float,
         attn_func=None,
-        sdpa: bool = False,
+        attn_type="flex",
         is_fp: bool = False,
         layer_norm: bool = False,
-        deployment: bool = False,
     ):
         super().__init__()
         self.is_fp = is_fp
@@ -386,9 +380,7 @@ class Block(nn.Module):
         else:
             self.proj = ConvFFN(dim, 3, 2)
         self.ln_attn = LayerNorm(dim)
-        self.attn = WindowAttention(
-            dim, window_size, num_heads, attn_func, sdpa, deployment
-        )
+        self.attn = WindowAttention(dim, window_size, num_heads, attn_func, attn_type)
 
         if is_fp:
             self.lns = nn.ModuleList([LayerNorm(dim) for _ in range(conv_blocks)])
@@ -488,12 +480,10 @@ class esc(nn.Module):
         num_heads: int = 4,
         upscaling_factor: int = upscale,
         exp_ratio: float = 1.25,
-        sdpa: bool = True,
+        attn_type: str = "sdpa",
         is_fp: bool = False,
         use_dysample: bool = True,
         realsr: bool = True,
-        deployment: bool = False,
-        do_compile: bool = False,
     ):
         super().__init__()
 
@@ -507,13 +497,17 @@ class esc(nn.Module):
             msg = "DySample can only be enabled on esc_real."
             raise ValueError(msg)
 
-        if deployment:
-            if do_compile:
-                attn_func = torch.compile(flex_attention, dynamic=True)
-            else:
-                attn_func = flex_attention
-        else:
+        attn_type = attn_type.lower()
+        if attn_type == "naive":
             attn_func = attention
+        elif attn_type == "sdpa":
+            attn_func = F.scaled_dot_product_attention
+        elif attn_type == "flex":
+            attn_func = flex_attention
+            #attn_func = torch.compile(flex_attention, dynamic=True)
+        else:
+            msg = f"Attention type {attn_type} is not supported."
+            raise NotImplementedError(msg)
 
         if is_fp:
             self.lk_channel = nn.Parameter(torch.randn(pdim, pdim, 1, 1))
@@ -540,10 +534,9 @@ class esc(nn.Module):
                 num_heads,
                 exp_ratio,
                 attn_func,
-                sdpa,
+                attn_type,
                 is_fp,
                 realsr,  # layer_norm
-                deployment,
             )
             for _ in range(n_blocks)
         ])
@@ -560,12 +553,13 @@ class esc(nn.Module):
                     end_convolution=True,
                 )
             else:
-                # Same as RealESRGAN and SwinIR-Real
                 layers = []
                 num_upscales = int(log2(self.upscaling_factor))
                 for _ in range(num_upscales):
                     layers.extend([
                         nn.Upsample(scale_factor=2, mode="nearest"),
+                        nn.Conv2d(dim, dim, 3, 1, 1),
+                        nn.LeakyReLU(0.2, inplace=True),
                         nn.Conv2d(dim, dim, 3, 1, 1),
                         nn.LeakyReLU(0.2, inplace=True),
                     ])

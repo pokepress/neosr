@@ -135,9 +135,7 @@ class base:
             net = net.to(self.device, non_blocking=True)  # type: ignore[attr-defined]
 
         if self.opt.get("compile", False) is True:
-            net = torch.compile(
-                net, mode="max-autotune", options={"epilogue_fusion": True}
-            )  # type: ignore[assignment]
+            net = torch.compile(net, mode="max-autotune", dynamic=True)  # type: ignore[assignment]
             # see option fullgraph=True
 
         if self.opt["dist"]:

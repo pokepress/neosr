@@ -10,23 +10,24 @@ keywords = [
 authors = [{ name = "neosr-project", email = "132400428+neosr-project@users.noreply.github.com" }]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
 ]
 
 dependencies = [
     "einops>=0.8.1",
     "lmdb>=1.6.2",
-    "numpy>=2.2.3",
+    "numpy>=2.2.4",
     "onnx>=1.17.0",
     "onnxconverter-common>=1.14.0",
-    "onnxruntime-gpu>=1.20.1",
+    "onnxruntime-gpu>=1.21.0",
     "opencv-python-headless>=4.11.0.86",
     "pywavelets>=1.8.0",
     "scipy>=1.15.2",
-    "tb-nightly>=2.20.0a20250304",
-    "torch>=2.6.0",
-    "torchvision>=0.21.0",
+    "tb-nightly>=2.20.0a",
+    "torch>=2.6",
+    "torchvision>=0.21",
     "tqdm>=4.67.1",
+    "triton>=3.2.0; sys_platform == 'linux'",
 ]
 
 [project.urls]
@@ -36,6 +37,10 @@ Documentation = "https://github.com/neosr-project/neosr/wiki"
 [tool.uv]
 package = false
 preview = true
+environments = [
+    "sys_platform == 'win32'",
+    "sys_platform == 'linux'",
+]
 
 [tool.uv.sources]
 torch = { index = "pytorch" }
@@ -90,6 +95,3 @@ split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
 "neosr/__init__.py" = ["F403"]
-
-#[tool.pylyzer.python]
-#path = ".venv/bin/python3.12"
