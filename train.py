@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import re
 import sys
 import time
 from os import path as osp
@@ -159,12 +160,30 @@ def train_pipeline(root_path: str) -> None:
         msg = f"{tc.red}CUDA not available. Please install pytorch with cuda support.{tc.end}"
         raise NotImplementedError(msg)
 
+    # check if system cuda version is not lower than pytorch target
+    try:
+        nvcc_cmd = "nvcc --version"
+        nvcc_cuda = re.search(r"release (\d+\.\d+)", popen(nvcc_cmd).read())[1]  # noqa: S605
+        torch_cuda = torch.version.cuda
+        if tuple(map(int, torch_cuda.split("."))) > tuple(
+            map(int, nvcc_cuda.split("."))
+        ):
+            msg = f"{tc.red}Your system CUDA version appears to be {nvcc_cuda} while pytorch is higher ({torch_cuda})!{tc.end}"
+            raise RuntimeError(msg)
+    except:
+        pass
+
+    # default device
+    torch.set_default_device("cuda")
+
     # parse options, set distributed setting, set random seed
     opt, args = parse_options(root_path, is_train=True)
     opt["root_path"] = root_path
 
-    # default device
-    torch.set_default_device("cuda")
+    # Triton doesn't support Windows yet
+    if sys.platform.startswith("win") and opt.get("compile", False) is True:
+        msg = f"{tc.red}Compile is not supported on Windows, please disable it on your configuration file.{tc.end}"
+        raise NotImplementedError(msg)
 
     # enable tensorfloat32 and possibly bfloat16 matmul
     fast_matmul = opt.get("fast_matmul", False)
@@ -201,8 +220,9 @@ def train_pipeline(root_path: str) -> None:
         logger_name="neosr", log_level=logging.INFO, log_file=str(log_file)
     )
 
+    smi_cmd = "nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits"
     driver_version = (
-        popen("nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits")  # noqa: S605, S607
+        popen(smi_cmd)  # noqa: S605
         .read()
         .strip()
     )

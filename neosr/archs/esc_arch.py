@@ -338,8 +338,7 @@ class WindowAttention(nn.Module):
                 self.window_size[0] * self.window_size[1],
                 self.window_size[0] * self.window_size[1],
             )
-            with sdpa_kernel(backends=[SDPBackend.EFFICIENT_ATTENTION]):
-                out = self.attn_func(q, k, v, attn_mask=bias, is_causal=False)
+            out = self.attn_func(q, k, v, attn_mask=bias, is_causal=False)
         elif self.attn_type == "naive":
             bias = self.relative_position_bias[self.rpe_idxs[:, 0], self.rpe_idxs[:, 1]]
             bias = bias.reshape(

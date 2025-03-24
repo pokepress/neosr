@@ -1,5 +1,5 @@
 
-name = "train_ninasr"
+name = "train_catanet"
 model_type = "image"
 scale = 4
 use_amp = true
@@ -41,16 +41,13 @@ val_freq = 1000
 #pretrain_network_d = 'experiments\pretrain_d.pth'
 
 [network_g]
-type = "ninasr"
-#type = "ninasr_b0"
-#type = "ninasr_b2"
+type = "catanet"
 
 [network_d]
 type = "metagan"
 
 [train]
 ema = 0.999
-clamp = false
 wavelet_guided = true
 wavelet_init = 80000
 #sam = "fsam"

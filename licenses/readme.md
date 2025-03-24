@@ -71,3 +71,4 @@
 | [`TOPIQ`](https://github.com/chaofengc/IQA-PyTorch)								| [CC-NC-SA 4.0](https://github.com/chaofengc/IQA-PyTorch/blob/main/LICENSE)					|
 | [`MoSRV2`](https://github.com/umzi2/MoSRV2)									| [MIT](https://github.com/umzi2/MoSRV2/blob/master/LICENSE)							|
 | [`ESC`](https://github.com/dslisleedh/ESC)									| [MIT](https://github.com/dslisleedh/ESC/blob/main/LICENSE)							|
+| [`CATANet`](https://github.com/EquationWalker/CATANet)							| [Apache 2.0](https://github.com/EquationWalker/CATANet/blob/main/LICENSE.txt)					|

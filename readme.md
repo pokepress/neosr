@@ -112,6 +112,7 @@ Where `config.toml` is a configuration file. Templates can be found in [options]
 |-------------------------------------------------------------------------------|--------------------------------------------------|
 | [MoSRV2](https://github.com/umzi2/MoSRV2)					| `mosrv2`					   |
 | [ESC](https://github.com/dslisleedh/ESC)					| `esc`, `esc_fp`, `esc_large`			   |
+| [CATANet](https://github.com/EquationWalker/CATANet)				| `catanet`					   |
 
 
 ### [supported discriminators](https://github.com/neosr-project/neosr/wiki/Arch%E2%80%90specific-options#discriminators):
