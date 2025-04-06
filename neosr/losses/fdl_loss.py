@@ -260,7 +260,7 @@ class fdl_loss(nn.Module):
         patch_size=4,
         stride=1,
         num_proj=24,
-        model="vgg",
+        model="dinov2",
         vgg_weights=None,
         dino_layers=None,
         dino_weights=None,

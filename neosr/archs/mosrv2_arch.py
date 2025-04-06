@@ -186,7 +186,7 @@ class mosrv2(nn.Module):
     def __init__(
         self,
         in_ch: int = 3,
-        scale: int = 4,
+        scale: int = upscale,
         n_block: int = 24,
         dim: int = 64,
         upsampler: SampleMods = "pixelshuffledirect",
