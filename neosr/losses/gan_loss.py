@@ -5,7 +5,7 @@ from neosr.utils.registry import LOSS_REGISTRY
 
 @LOSS_REGISTRY.register()
 class gan_loss(nn.Module):
-    """Define GAN loss.
+    """GAN loss.
 
     Args:
     ----
@@ -52,8 +52,7 @@ class gan_loss(nn.Module):
 
         Returns:
         -------
-            (bool | Tensor): Target tensor. Return bool for wgan, otherwise,
-                return Tensor.
+            (bool | Tensor): Target tensor. Returns Tensor.
 
         """
         target_val = self.real_label_val if target_is_real else self.fake_label_val

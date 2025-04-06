@@ -394,7 +394,7 @@ class base:
             else:
                 param_key = self.param_key
             load_net = load_net[param_key]
-        except:  # noqa: S110
+        except:
             pass
 
         if param_key:

@@ -337,8 +337,5 @@ class fdl_loss(nn.Module):
 
         score = sum(score)
         # decrease magnitude to balance with other losses
-        if self.model_name != "dinov2":
-            score = score.mean() * 0.01
-        else:
-            score = score.mean()
+        score = score.mean() * 0.01 if self.model_name != "dinov2" else score.mean()
         return score * self.loss_weight

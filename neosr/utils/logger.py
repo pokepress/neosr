@@ -143,7 +143,9 @@ class MessageLogger:
         current_iter: int = int(log_vars.pop("iter")) // self.accumulate
         lrs: list[Any] = log_vars.pop("lrs")
 
-        message = f"[ epoch:{epoch:4d} ] {tc.light_green}[ iter:{current_iter:7,d} ]{tc.end}"
+        message = (
+            f"[ epoch:{epoch:4d} ] {tc.light_green}[ iter:{current_iter:7,d} ]{tc.end}"
+        )
 
         # time and estimated time
         if "time" in log_vars:

@@ -83,7 +83,7 @@ lint.ignore = [
     "T201",
     "TD",
 ]
-exclude = ["*_arch.py"]
+exclude = ["*_arch.py", ".venv/*"]
 preview = true
 
 [tool.ruff.format]

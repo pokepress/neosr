@@ -72,6 +72,70 @@ def warmup(lr: float, step: int, warmup_steps: int):
     return lr * step / warmup_steps
 
 
+def is_compiling():
+    try:
+        return torch.compiler.is_compiling()
+    except torch._dynamo.exc.TorchDynamoException:
+        return True
+
+
+def set_(dst: Tensor, src: Tensor):
+    if not is_compiling() and src.data_ptr() == dst.data_ptr():
+        return
+    if src.shape != dst.shape:
+        src = src.reshape_as(dst)
+    if (
+        not is_compiling()
+        and src.is_contiguous()
+        and dst.is_contiguous()
+        and src.dtype == dst.dtype
+    ):
+        dst.set_(src)
+    else:
+        dst.copy_(src)
+
+
+def promote(x):
+    if isinstance(x, torch.dtype) and x in (torch.bfloat16, torch.float16):
+        return torch.float32
+    if isinstance(x, Tensor) and x.dtype in (torch.bfloat16, torch.float16):
+        return x.float()
+    return x
+
+
+# @decorator_knowngood
+def _compilable_copy_stochastic_(target: Tensor, source: Tensor):
+    """Taken as-is from https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905"""
+    # create a random 16 bit integer
+    result = torch.randint_like(source, dtype=torch.int32, low=0, high=(1 << 16))
+
+    # add the random number to the lower 16 bit of the mantissa
+    result.add_(source.view(dtype=torch.int32))
+
+    # mask off the lower 16 bit of the mantissa
+    result.bitwise_and_(-65536)  # -65536 = FFFF0000 as a signed int32
+
+    # copy the higher 16 bit into the target tensor
+    target.copy_(result.view(dtype=torch.float32))
+
+
+def copy_stochastic_(target: Tensor, source: Tensor):
+    if not is_compiling() and target.data_ptr() == source.data_ptr():
+        return
+    if target.dtype == torch.bfloat16 and source.dtype in (
+        torch.float16,
+        torch.float32,
+        torch.float64,
+    ):
+        _compilable_copy_stochastic_(target, source.float())
+    set_(target, source)
+
+
+def copy_stochastic_list_(target: list[Tensor], source: list[Tensor]):
+    for t, s in zip(target, source, strict=False):
+        copy_stochastic_(t, s)
+
+
 # @decorator_knowngood
 def _compilable_schedule_free_(
     p: list[Tensor],
@@ -88,6 +152,14 @@ def _compilable_schedule_free_(
         z_.add_(g_, alpha=-lr)
     copy_stochastic_list_(p, p32)
     copy_stochastic_list_(z, z32)
+
+
+def scalar_guard(x, ref):
+    if isinstance(x, float):
+        return torch.empty((), dtype=torch.float32, device=ref.device).fill_(x)
+    if isinstance(x, int):
+        return torch.empty((), dtype=torch.int64, device=ref.device).fill_(x)
+    return x
 
 
 def schedule_free_(
@@ -196,6 +268,12 @@ def _compilable_exp_avg_sq_(
     return out
 
 
+def list_guard(x):
+    if isinstance(x, list | tuple):
+        return x
+    return [x]
+
+
 def exp_avg_sq_(state, grad, beta2, eps, out=None):
     state, grad, out = list_guard(state), list_guard(grad), list_guard(out)
     beta2, eps = scalar_guard(beta2, state[0]), scalar_guard(eps, state[0])
@@ -219,29 +297,6 @@ def adaptive_gradient_clipping_(
     torch._foreach_mul_(p_norm, clip_val)
     torch._foreach_minimum_(p_norm, 1)
     torch._foreach_mul_(gradients, p_norm)
-
-
-def is_compiling():
-    try:
-        return torch.compiler.is_compiling()
-    except torch._dynamo.exc.TorchDynamoException:
-        return True
-
-
-def set_(dst: Tensor, src: Tensor):
-    if not is_compiling() and src.data_ptr() == dst.data_ptr():
-        return
-    if src.shape != dst.shape:
-        src = src.reshape_as(dst)
-    if (
-        not is_compiling()
-        and src.is_contiguous()
-        and dst.is_contiguous()
-        and src.dtype == dst.dtype
-    ):
-        dst.set_(src)
-    else:
-        dst.copy_(src)
 
 
 def clean():
@@ -390,20 +445,6 @@ def get_orthogonal_matrix(mat):
     return final
 
 
-def list_guard(x):
-    if isinstance(x, list | tuple):
-        return x
-    return [x]
-
-
-def scalar_guard(x, ref):
-    if isinstance(x, float):
-        return torch.empty((), dtype=torch.float32, device=ref.device).fill_(x)
-    if isinstance(x, int):
-        return torch.empty((), dtype=torch.int64, device=ref.device).fill_(x)
-    return x
-
-
 # @decorator
 def compute_ggt(grad, GG, max_precond_dim, precondition_1d, beta):
     einsum_base = string.ascii_lowercase + string.ascii_uppercase
@@ -418,14 +459,6 @@ def compute_ggt(grad, GG, max_precond_dim, precondition_1d, beta):
         g1 = g0.replace(b, b.upper())
         outer_product = torch.einsum(f"{g0},{g1}->{b + b.upper()}", grad, grad)
         GG[idx].lerp_(promote(outer_product), 1 - beta)
-
-
-def promote(x):
-    if isinstance(x, torch.dtype) and x in (torch.bfloat16, torch.float16):
-        return torch.float32
-    if isinstance(x, Tensor) and x.dtype in (torch.bfloat16, torch.float16):
-        return x.float()
-    return x
 
 
 def update_preconditioner(
@@ -493,6 +526,50 @@ def project(grad, Q, back: bool):
             f"{param},{preconditioners}->{out}", grad, *[q for q in Q if len(q) > 0]
         )
     return grad
+
+
+# @decorator_knowngood
+def _compilable_stochastic_lerp_(x: list[Tensor], y: list[Tensor], a: float | Tensor):
+    for x_, y_ in zip(x, y, strict=False):
+        x32 = promote(x_)
+        y32 = promote(y_)
+        x32.lerp_(y32, a)
+        copy_stochastic_(x_, x32)
+
+
+# @decorator_knowngood
+def _compilable_mars_correction_(g: Tensor, old_g: Tensor, a: Tensor):
+    g_copy = [g_.clone() for g_ in g]
+    _compilable_stochastic_lerp_(g, old_g, a)
+    copy_stochastic_list_(old_g, g_copy)
+
+
+def mars_correction(g, old_g, beta1, gamma):
+    a = -gamma * beta1 / (1 - beta1)
+    g, old_g = list_guard(g), list_guard(old_g)
+    a = scalar_guard(a, g[0])
+    _compilable_mars_correction_(g, old_g, a)
+
+
+def merge_group(group, *tensors):
+    if not group.get("merge_dims", False):
+        return tensors
+    if isinstance(tensors[0], list):
+        return [merge_group(group, *t) for t in tensors]
+
+    out = []
+    for t in tensors:
+        append_or_extend(
+            out,
+            dim_merger(
+                t,
+                group["max_size_triangular"]
+                if "max_size_triangular" in group
+                else group["max_precond_dim"],
+                group.get("split", False),
+            ),
+        )
+    return out
 
 
 class StatefulOptimizer(torch.optim.Optimizer):
@@ -639,66 +716,10 @@ class ScheduleFree(StatefulOptimizer):
         raise NotImplementedError
 
 
-def copy_stochastic_list_(target: list[Tensor], source: list[Tensor]):
-    for t, s in zip(target, source, strict=False):
-        copy_stochastic_(t, s)
-
-
-# @decorator_knowngood
-def _compilable_copy_stochastic_(target: Tensor, source: Tensor):
-    """Taken as-is from https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905"""
-    # create a random 16 bit integer
-    result = torch.randint_like(source, dtype=torch.int32, low=0, high=(1 << 16))
-
-    # add the random number to the lower 16 bit of the mantissa
-    result.add_(source.view(dtype=torch.int32))
-
-    # mask off the lower 16 bit of the mantissa
-    result.bitwise_and_(-65536)  # -65536 = FFFF0000 as a signed int32
-
-    # copy the higher 16 bit into the target tensor
-    target.copy_(result.view(dtype=torch.float32))
-
-
-def copy_stochastic_(target: Tensor, source: Tensor):
-    if not is_compiling() and target.data_ptr() == source.data_ptr():
-        return
-    if target.dtype == torch.bfloat16 and source.dtype in (
-        torch.float16,
-        torch.float32,
-        torch.float64,
-    ):
-        _compilable_copy_stochastic_(target, source.float())
-    set_(target, source)
-
-
-# @decorator_knowngood
-def _compilable_stochastic_lerp_(x: list[Tensor], y: list[Tensor], a: float | Tensor):
-    for x_, y_ in zip(x, y, strict=False):
-        x32 = promote(x_)
-        y32 = promote(y_)
-        x32.lerp_(y32, a)
-        copy_stochastic_(x_, x32)
-
-
 def stochastic_lerp_(x: list[Tensor], y: list[Tensor], a: float | Tensor):
     x, y = list_guard(x), list_guard(y)
     a = scalar_guard(a, x[0])
     _compilable_stochastic_lerp_(x, y, a)
-
-
-# @decorator_knowngood
-def _compilable_mars_correction_(g: Tensor, old_g: Tensor, a: Tensor):
-    g_copy = [g_.clone() for g_ in g]
-    _compilable_stochastic_lerp_(g, old_g, a)
-    copy_stochastic_list_(old_g, g_copy)
-
-
-def mars_correction(g, old_g, beta1, gamma):
-    a = -gamma * beta1 / (1 - beta1)
-    g, old_g = list_guard(g), list_guard(old_g)
-    a = scalar_guard(a, g[0])
-    _compilable_mars_correction_(g, old_g, a)
 
 
 # @decorator_knowngood
@@ -711,27 +732,6 @@ def _compilable_cautioning_(g: Tensor, update: Tensor):
 
 def caution(g, update):
     _compilable_cautioning_(g, update)
-
-
-def merge_group(group, *tensors):
-    if not group.get("merge_dims", False):
-        return tensors
-    if isinstance(tensors[0], list):
-        return [merge_group(group, *t) for t in tensors]
-
-    out = []
-    for t in tensors:
-        append_or_extend(
-            out,
-            dim_merger(
-                t,
-                group["max_size_triangular"]
-                if "max_size_triangular" in group
-                else group["max_precond_dim"],
-                group.get("split", False),
-            ),
-        )
-    return out
 
 
 # @decorator_knowngood

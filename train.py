@@ -206,7 +206,7 @@ def train_pipeline(root_path: str) -> None:
                 Path(opt["root_path"]) / "experiments" / "tb_logger" / opt["name"]
             )
 
-    # copy the yml file to the experiment root
+    # copy the toml file to the experiment root
     try:
         copy_opt_file(args.opt, opt["path"]["experiments_root"])
     except:

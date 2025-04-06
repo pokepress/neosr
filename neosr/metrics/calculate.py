@@ -7,8 +7,8 @@ from cv2.typing import MatLike
 from torch import Tensor
 
 from neosr.losses.dists_loss import dists_loss
-from neosr.metrics.topiq import topiq
 from neosr.metrics.metric_util import reorder_image, to_y_channel
+from neosr.metrics.topiq import topiq
 from neosr.utils.img_util import img2tensor
 from neosr.utils.registry import METRIC_REGISTRY
 
@@ -200,6 +200,7 @@ def calculate_dists(
 
     loss = dists_loss(as_loss=False)  # type: ignore[reportCallIssue]
     return loss.forward(img, img2)
+
 
 @METRIC_REGISTRY.register()
 def calculate_topiq(

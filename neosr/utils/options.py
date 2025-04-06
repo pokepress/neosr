@@ -2,8 +2,10 @@ import argparse
 import os
 import random
 import sys
+import time
 import tomllib
 from pathlib import Path, PosixPath
+from shutil import copyfile
 from typing import Any
 
 import torch
@@ -281,12 +283,11 @@ def parse_options(
 @master_only
 def copy_opt_file(opt_file: str, experiments_root: str) -> None:
     # copy the toml file to the experiment root
-    import sys  # noqa: PLC0415
-    import time  # noqa: PLC0415
-    from shutil import copyfile  # noqa: PLC0415
-
     cmd = " ".join(sys.argv)
-    filename = Path(experiments_root) / Path(opt_file).name
+    original_path = Path(opt_file)
+    time_str = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+    new_filename = f"{original_path.stem}_{time_str}{original_path.suffix}"
+    filename = Path(experiments_root) / new_filename
     copyfile(opt_file, filename)
 
     with Path(filename).open("r+", encoding="utf-8") as f:
