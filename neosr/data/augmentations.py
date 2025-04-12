@@ -96,7 +96,8 @@ def cutmix(img_gt: Tensor, img_lq: Tensor, alpha: float = 0.9) -> tuple[Tensor, 
 
 @torch.no_grad()
 def resizemix(
-    img_gt: Tensor, img_lq: Tensor, scope: tuple[float, float] = (0.2, 0.9)
+    img_gt: Tensor, img_lq: Tensor, scope: tuple[float, float] = (0.2, 0.9), 
+    x_axis_only: bool = False, y_axis_only: bool = False
 ) -> tuple[Tensor, Tensor]:
     r"""ResizeMix augmentation.
 
@@ -108,13 +109,19 @@ def resizemix(
         img_gt, img_lq (Tensor): Input images of shape (N, C, H, W).
             Assumes same size.
         scope (float): The given maximum mixing ratio.
+        x_axis_only: Scale only on x axis
+        y_axis_only: Scale only on y axis
 
     """
     if img_gt.size() != img_lq.size():
         msg = "img_gt and img_lq have to be the same resolution."
         raise ValueError(msg)
+    
+    if x_axis_only and y_axis_only:
+        msg = "must resize at least one axis."
+        raise ValueError(msg)
 
-    def rand_bbox_tao(size, tao):
+    def rand_bbox_tao(size, tao, x_axis_only: bool = False, y_axis_only: bool = False):
         """Generate random box by tao (scale)."""
         W = size[2]
         H = size[3]
@@ -125,10 +132,10 @@ def resizemix(
         cx = rng.integers(W)  # type: ignore[attr-defined]
         cy = rng.integers(H)  # type: ignore[attr-defined]
 
-        bbx1 = np.clip(cx - cut_w // 2, 0, W)
-        bby1 = np.clip(cy - cut_h // 2, 0, H)
-        bbx2 = np.clip(cx + cut_w // 2, 0, W)
-        bby2 = np.clip(cy + cut_h // 2, 0, H)
+        bbx1 = 0 if y_axis_only else np.clip(cx - cut_w // 2, 0, W)
+        bby1 = 0 if x_axis_only else np.clip(cy - cut_h // 2, 0, H)
+        bbx2 = W if y_axis_only else np.clip(cx + cut_w // 2, 0, W)
+        bby2 = H if x_axis_only else np.clip(cy + cut_h // 2, 0, H)
 
         return bbx1, bby1, bbx2, bby2
 
@@ -147,10 +154,18 @@ def resizemix(
 
     # resize
     img_gt_resize = torch.clamp(
-        F.interpolate(img_gt_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic"), 0, 1
+        F.interpolate(
+            img_gt_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic", antialias=True
+        ),
+        0,
+        1,
     )
     img_lq_resize = torch.clamp(
-        F.interpolate(img_lq_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic"), 0, 1
+        F.interpolate(
+            img_lq_resize, (bby2 - bby1, bbx2 - bbx1), mode="bicubic", antialias=True
+        ),
+        0,
+        1,
     )
 
     # mix
@@ -213,14 +228,16 @@ def apply_augment(
     img_gt: Tensor,
     img_lq: Tensor,
     scale: int = 1,
-    augs: tuple[str, str, str, str, str] = (
+    augs: tuple[str, str, str, str, str, str, str] = (
         "none",
         "mixup",
         "cutmix",
         "resizemix",
+        "resizemixX",
+        "resizemixY",
         "cutblur",
     ),
-    prob: tuple[float, float, float, float, float] = (0.1, 0.3, 0.2, 0.7, 0.8),
+    prob: tuple[float, float, float, float, float] = (0.1, 0.3, 0.2, 0.7, 0.7, 0.7, 0.8),
     multi_prob: float = 0.3,
 ) -> tuple[Tensor, Tensor]:
     r"""Applies Augmentations.
@@ -249,7 +266,11 @@ def apply_augment(
     modes = ["bilinear", "bicubic"]
     if scale > 1:
         img_lq = torch.clamp(
-            F.interpolate(img_lq, scale_factor=scale, mode=random.choice(modes)), 0, 1
+            F.interpolate(
+                img_lq, scale_factor=scale, mode=random.choice(modes), antialias=True
+            ),
+            0,
+            1,
         )
 
     if rng.random() < multi_prob:  # type: ignore[attr-defined]
@@ -268,6 +289,12 @@ def apply_augment(
             img_gt, img_lq = mixup(img_gt, img_lq)
         if "resizemix" in aug:
             img_gt, img_lq = resizemix(img_gt, img_lq)
+        #Values > 1 are intentional, designed to cover cases like stretched/squished aspect
+        #ratio, etc. GT and LQ image pairs still need to be consistent with each other, however.
+        if "resizemixX" in aug:
+            img_gt, img_lq = resizemix(img_gt, img_lq, [0.666, 1.5], True, False)
+        if "resizemixY" in aug:
+            img_gt, img_lq = resizemix(img_gt, img_lq, [0.666, 1.5], False, True)
         if "cutblur" in aug:
             img_gt, img_lq = cutblur(img_gt, img_lq)
 
@@ -280,13 +307,23 @@ def apply_augment(
             img_gt, img_lq = mixup(img_gt, img_lq)
         elif "resizemix" in aug:
             img_gt, img_lq = resizemix(img_gt, img_lq)
+        elif "resizemixX" in aug:
+            img_gt, img_lq = resizemix(img_gt, img_lq, [0.666, 1.5], True, False)
+        elif "resizemixY" in aug:
+            img_gt, img_lq = resizemix(img_gt, img_lq, [0.666, 1.5], False, True)
         elif "cutblur" in aug:
             img_gt, img_lq = cutblur(img_gt, img_lq)
+        else:
+            pass
 
     # back to original resolution
     if scale > 1:
         img_lq = torch.clamp(
-            F.interpolate(img_lq, scale_factor=1 / scale, mode="bicubic"), 0, 1
+            F.interpolate(
+                img_lq, scale_factor=1 / scale, mode="bicubic", antialias=True
+            ),
+            0,
+            1,
         )
 
     return img_gt, img_lq
