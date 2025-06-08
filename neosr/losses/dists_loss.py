@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib import request
 
 import numpy as np
 import torch
@@ -101,16 +102,21 @@ class dists_loss(nn.Module):
         self.alpha.data.normal_(0.1, 0.01)
         self.beta.data.normal_(0.1, 0.01)
 
+        # load dists weights
         if load_weights:
-            current_dir = Path(Path(__file__).resolve()).parent
-            model_path = Path(current_dir) / "dists_weights.pth"
-            weights = (
-                torch.load(
-                    model_path, map_location=torch.device("cuda"), weights_only=True
-                )
-                if Path(model_path).exists()
-                else None
+            model_path = Path(__file__).parent / "dists_weights.pth"
+            try:
+                if not model_path.exists():
+                    url = "https://huggingface.co/neosr/models/resolve/main/dists_weights.pth?download=true"
+                    request.urlretrieve(url, model_path)  # noqa: S310
+            except:
+                msg = "Could not download TOPIQ weights."
+                raise ValueError(msg)
+
+            weights = torch.load(
+                model_path, map_location=torch.device("cuda"), weights_only=True
             )
+
             if weights is not None:
                 self.alpha.data = weights["alpha"]
                 self.beta.data = weights["beta"]
